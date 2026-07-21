@@ -299,6 +299,7 @@
 
     <script>
         const editor = document.getElementById("editor");
+        const draftStorageKey = "em-dash-draft";
         let isApplying = false;
 
         const inlineRules = [
@@ -315,6 +316,7 @@
 
             if (event.data === " ") {
                 if (applyBlockFormatting()) {
+                    saveDraft();
                     return;
                 }
             }
@@ -324,7 +326,27 @@
             applyInlineFormatting();
             restoreCaret(marker);
             isApplying = false;
+            saveDraft();
         });
+
+        function saveDraft() {
+            try {
+                localStorage.setItem(draftStorageKey, editor.innerHTML);
+            } catch (error) {
+                // Private browsing modes may disable local storage.
+            }
+        }
+
+        function restoreDraft() {
+            try {
+                const savedDraft = localStorage.getItem(draftStorageKey);
+                if (savedDraft !== null) {
+                    editor.innerHTML = savedDraft;
+                }
+            } catch (error) {
+                // Private browsing modes may disable local storage.
+            }
+        }
 
         function applyBlockFormatting() {
             const selection = window.getSelection();
@@ -567,6 +589,7 @@
             setNavCollapsed(false, false);
         }
 
+        restoreDraft();
         editor.focus();
     </script>
 </body>
