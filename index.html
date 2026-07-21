@@ -1,32 +1,32 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>em—dash</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>em&mdash;dash</title>
     <style>
         :root {
             color-scheme: light;
-            --page-background: #ffffff;
-            --text-color: #171717;
-            --muted-color: #686868;
-            --control-border: #d8d8d8;
-            --control-hover: #f2f2f2;
-            --collapse-border: #777777;
-            --header-highlight: rgba(119, 119, 119, 0.14);
-            --header-highlight-edge: rgba(119, 119, 119, 0.62);
+            --background: #fff;
+            --text: #171717;
+            --muted: #686868;
+            --control: #d8d8d8;
+            --hover: #f2f2f2;
+            --rule: #777;
+            --flash: rgb(119 119 119 / 14%);
+            --flash-edge: rgb(119 119 119 / 62%);
         }
 
-        body.dark-mode {
+        :root.dark-mode {
             color-scheme: dark;
-            --page-background: #171717;
-            --text-color: #eeeeee;
-            --muted-color: #aaaaaa;
-            --control-border: #505050;
-            --control-hover: #2a2a2a;
-            --collapse-border: #8a8a8a;
-            --header-highlight: rgba(238, 238, 238, 0.12);
-            --header-highlight-edge: rgba(238, 238, 238, 0.58);
+            --background: #171717;
+            --text: #eee;
+            --muted: #aaa;
+            --control: #505050;
+            --hover: #2a2a2a;
+            --rule: #8a8a8a;
+            --flash: rgb(238 238 238 / 12%);
+            --flash-edge: rgb(238 238 238 / 58%);
         }
 
         html {
@@ -39,557 +39,432 @@
 
         body {
             margin: 0;
-            background: var(--page-background);
-            color: var(--text-color);
+            background: var(--background);
+            color: var(--text);
         }
 
         a {
             color: inherit;
         }
 
-        .container {
-            width: 70%;
-            /* max-width: 760px; */
-            margin: 0 auto;
-            padding: 0 20px 40px;
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            display: flex;
+            min-height: 88px;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: var(--background);
+            transition: min-height 180ms ease;
         }
 
-        .header h1 {
+        .header h1,
+        .byline {
             margin: 0;
-            text-align: center;
-            font-family: monospace;
             transition: opacity 180ms ease, transform 180ms ease;
+        }
+
+        .header h1,
+        .editor {
+            font-family: monospace;
         }
 
         .byline {
             display: flex;
             align-items: center;
-            justify-content: center;
             gap: 8px;
-            margin: 0;
-            color: var(--muted-color);
+            color: var(--muted);
             font-size: 0.95rem;
-            text-align: center;
-            transition: opacity 180ms ease, transform 180ms ease;
         }
 
-        .header {
-            position: sticky;
-            top: 0;
-            z-index: 10;
-            display: flex;
-            min-height: 88px;
-            align-items: center;
-            flex-direction: column;
-            gap: 8px;
-            justify-content: center;
-            background-color: var(--page-background);
-            transition: min-height 180ms ease;
+        button {
+            padding: 0;
+            background: transparent;
+            color: inherit;
+            font: inherit;
+            cursor: pointer;
         }
 
-        .header.header-highlight {
-            animation: header-highlight 420ms ease-out;
+        button:focus-visible {
+            outline: 2px solid currentColor;
+            outline-offset: 3px;
         }
 
-        @keyframes header-highlight {
-            0%,
-            100% {
-                background-color: var(--page-background);
-                box-shadow: inset 0 0 0 0 transparent;
-            }
+        .theme-toggle {
+            display: grid;
+            width: 24px;
+            height: 24px;
+            place-items: center;
+            border: 1px solid var(--control);
+            border-radius: 50%;
+        }
 
-            28% {
-                background-color: var(--header-highlight);
-                box-shadow: inset 0 0 0 2px var(--header-highlight-edge);
-            }
+        .theme-toggle::before {
+            content: "\1f4a1";
+            opacity: 0.45;
+            filter: grayscale(1);
+            transition: opacity 120ms ease, filter 120ms ease;
+        }
+
+        .dark-mode .theme-toggle::before {
+            opacity: 1;
+            filter: none;
+        }
+
+        .theme-toggle:hover,
+        .nav-toggle:hover {
+            background: var(--hover);
         }
 
         .nav-toggle {
-            display: flex;
+            display: grid;
             width: 40px;
-            min-width: 40px;
             height: 28px;
-            flex: 0 0 28px;
-            align-items: center;
-            justify-content: center;
-            padding: 0;
+            place-items: center;
             border: 0;
-            border-bottom: 2px solid var(--collapse-border);
-            border-radius: 0;
-            background: transparent;
-            color: var(--text-color);
-            cursor: pointer;
-            font: inherit;
-            line-height: 1;
+            border-bottom: 2px solid var(--rule);
             opacity: 0.9;
             transition: background 120ms ease, opacity 120ms ease;
         }
 
         .nav-toggle:hover {
-            background: var(--control-hover);
             opacity: 1;
         }
 
-        .toggle-glyph {
-            display: inline-block;
+        .nav-toggle::before {
+            content: "\2303";
             font-size: 1.45rem;
             font-weight: 600;
             line-height: 0.7;
-            animation: collapsed-chevron 0.8s ease-in-out infinite;
+            animation: chevron 0.8s ease-in-out infinite;
         }
 
-        @keyframes collapsed-chevron {
-            0%,
-            100% {
-                opacity: 0.7;
-                transform: translateY(0);
-            }
+        .nav-collapsed .header {
+            min-height: 32px;
+        }
 
+        .nav-collapsed .header h1,
+        .nav-collapsed .byline {
+            position: absolute;
+            visibility: hidden;
+            opacity: 0;
+            transform: translateY(-8px);
+        }
+
+        .nav-collapsed .nav-toggle {
+            border-top: 2px solid var(--rule);
+            border-bottom: 0;
+        }
+
+        .nav-collapsed .nav-toggle::before {
+            content: "\2304";
+        }
+
+        .header.flash {
+            animation: flash 420ms ease-out;
+        }
+
+        @keyframes chevron {
             50% {
                 opacity: 1;
                 transform: translateY(3px);
             }
         }
 
-        .theme-toggle {
-            display: inline-grid;
-            width: 24px;
-            height: 24px;
-            padding: 0;
-            place-items: center;
-            border: 1px solid var(--control-border);
-            border-radius: 50%;
-            background: transparent;
-            color: inherit;
-            cursor: pointer;
-            font: inherit;
-            line-height: 1;
+        @keyframes flash {
+            28% {
+                background: var(--flash);
+                box-shadow: inset 0 0 0 2px var(--flash-edge);
+            }
         }
 
-        .theme-toggle:hover {
-            background: var(--control-hover);
-        }
-
-        .theme-glyph {
-            display: inline-block;
-            opacity: 0.45;
-            filter: grayscale(1);
-            transition: opacity 120ms ease, filter 120ms ease;
-        }
-
-        body.dark-mode .theme-glyph {
-            opacity: 1;
-            filter: none;
-        }
-
-        .nav-toggle:focus-visible,
-        .theme-toggle:focus-visible {
-            outline: 2px solid currentColor;
-            outline-offset: 3px;
-        }
-
-        .visually-hidden {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            white-space: nowrap;
-            border: 0;
+        main {
+            width: 70%;
+            margin: auto;
+            padding: 0 20px 40px;
         }
 
         .editor {
-            font-family: monospace;
-            font-size: 18px;
             min-height: 60vh;
             padding: 18px;
-            line-height: 1.25;
-            caret-color: currentColor;
-        }
-
-        .editor:focus {
             outline: none;
-        }
-
-        /* .editor:empty::before {
-            content: attr(data-placeholder);
-            color: #9a9a9a;
-        } */
-
-        body.nav-collapsed .header {
-            min-height: 32px;
-            gap: 0;
-        }
-
-        body.nav-collapsed .nav-toggle {
-            border-top: 2px solid var(--collapse-border);
-            border-bottom: 0;
-        }
-
-        body.nav-collapsed .header h1,
-        body.nav-collapsed .byline {
-            visibility: hidden;
-            width: 0;
-            height: 0;
-            overflow: hidden;
-            opacity: 0;
-            pointer-events: none;
-            transform: translateY(-8px);
+            font-size: 18px;
+            line-height: 1.25;
         }
 
         @media (max-width: 640px) {
-            .container {
+            main {
                 width: 100%;
             }
         }
 
         @media (prefers-reduced-motion: reduce) {
             .header,
-            .header h1,
-            .byline,
-            .nav-toggle,
-            .toggle-glyph,
-            .theme-glyph {
-                transition: none;
+            .header *,
+            .header *::before {
                 animation: none;
+                transition: none;
             }
         }
     </style>
 </head>
 <body>
-    <header class="header" id="top-nav">
-            <h1>em—dash</h1>
-            <p class="byline">
-                <button
-                    class="theme-toggle"
-                    id="theme-toggle"
-                    type="button"
-                    aria-pressed="false"
-                    aria-label="Switch to dark mode"
-                    title="Switch to dark mode">
-                    <span class="theme-glyph" aria-hidden="true">&#128161;</span>
-                    <span class="visually-hidden">Switch to dark mode</span>
-                </button>
-                <span>built by <a href="../index.html">Mukesh</a></span>
-            </p>
+    <header class="header" id="header">
+        <h1>em&mdash;dash</h1>
+        <p class="byline">
             <button
-                class="nav-toggle"
-                id="nav-toggle"
+                class="theme-toggle"
+                id="theme-toggle"
                 type="button"
-                aria-controls="top-nav"
-                aria-expanded="true"
-                aria-label="Collapse top bar"
-                title="Collapse top bar">
-                <span class="toggle-glyph" aria-hidden="true">⌃</span>
-                <span class="visually-hidden">Collapse top bar</span>
-            </button>
+                aria-label="Switch to dark mode"
+                aria-pressed="false"
+                title="Switch to dark mode"></button>
+            <span>built by <a href="../index.html">Mukesh</a></span>
+        </p>
+        <button
+            class="nav-toggle"
+            id="nav-toggle"
+            type="button"
+            aria-controls="header"
+            aria-expanded="true"
+            aria-label="Collapse top bar"
+            title="Collapse top bar"></button>
     </header>
-    <main class="container">
+
+    <main>
         <div
             class="editor"
             id="editor"
             contenteditable="true"
             role="textbox"
-            aria-multiline="true"
-            placeholder="start writing...">
-        </div>
+            aria-multiline="true"></div>
     </main>
 
     <script>
+        const root = document.documentElement;
+        const header = document.getElementById("header");
         const editor = document.getElementById("editor");
-        const draftStorageKey = "em-dash-draft";
-        let isApplying = false;
+        const navToggle = document.getElementById("nav-toggle");
+        const themeToggle = document.getElementById("theme-toggle");
+        const inlinePattern = /(?<!\*)(\*{1,3})([^*]+)\1(?!\*)|(?<!_)_([^_]+)_(?!_)/g;
 
-        const inlineRules = [
-            { pattern: /\*\*\*([^*]+)\*\*\*/g, replacement: "<strong><em>$1</em></strong>" },
-            { pattern: /\*\*([^*]+)\*\*/g, replacement: "<strong>$1</strong>" },
-            { pattern: /\*([^*]+)\*/g, replacement: "<em>$1</em>" },
-            { pattern: /_([^_]+)_/g, replacement: "<em>$1</em>" }
-        ];
-
-        editor.addEventListener("input", (event) => {
-            if (isApplying) {
-                return;
+        function load(name) {
+            try {
+                return localStorage.getItem(`em-dash-${name}`);
+            } catch {
+                return null;
             }
+        }
 
-            if (event.data === " ") {
-                if (applyBlockFormatting()) {
-                    saveDraft();
-                    return;
-                }
+        function save(name, value) {
+            try {
+                localStorage.setItem(`em-dash-${name}`, value);
+            } catch {}
+        }
+
+        function setDarkMode(dark, persist = false) {
+            const action = dark ? "Switch to light mode" : "Switch to dark mode";
+            root.classList.toggle("dark-mode", dark);
+            themeToggle.setAttribute("aria-pressed", String(dark));
+            themeToggle.setAttribute("aria-label", action);
+            themeToggle.title = action;
+
+            if (persist) {
+                save("dark-mode", dark);
             }
+        }
 
-            isApplying = true;
-            const marker = insertCaretMarker();
-            applyInlineFormatting();
-            restoreCaret(marker);
-            isApplying = false;
-            saveDraft();
+        function setNavCollapsed(collapsed, persist = false) {
+            const action = collapsed ? "Expand top bar" : "Collapse top bar";
+            root.classList.toggle("nav-collapsed", collapsed);
+            navToggle.setAttribute("aria-expanded", String(!collapsed));
+            navToggle.setAttribute("aria-label", action);
+            navToggle.title = action;
+
+            if (persist) {
+                header.classList.remove("flash");
+                requestAnimationFrame(() => header.classList.add("flash"));
+                save("nav-collapsed", collapsed);
+            }
+        }
+
+        header.addEventListener("mousedown", (event) => {
+            if (event.target.closest("button")) {
+                event.preventDefault();
+            }
         });
 
-        function saveDraft() {
-            try {
-                localStorage.setItem(draftStorageKey, editor.innerHTML);
-            } catch (error) {
-                // Private browsing modes may disable local storage.
-            }
-        }
+        themeToggle.addEventListener("click", () => {
+            setDarkMode(!root.classList.contains("dark-mode"), true);
+            editor.focus({ preventScroll: true });
+        });
 
-        function restoreDraft() {
-            try {
-                const savedDraft = localStorage.getItem(draftStorageKey);
-                if (savedDraft !== null) {
-                    editor.innerHTML = savedDraft;
-                }
-            } catch (error) {
-                // Private browsing modes may disable local storage.
-            }
-        }
+        navToggle.addEventListener("click", () => {
+            setNavCollapsed(!root.classList.contains("nav-collapsed"), true);
+            editor.focus({ preventScroll: true });
+        });
 
-        function applyBlockFormatting() {
-            const selection = window.getSelection();
-            if (!selection.rangeCount) {
-                return false;
+        editor.addEventListener("input", (event) => {
+            if (event.data !== " " || !formatBlock()) {
+                formatInline();
             }
+            save("draft", editor.innerHTML.replaceAll("\u200B", ""));
+        });
 
+        function formatBlock() {
+            const selection = getSelection();
             const anchor = selection.anchorNode;
-            const block = findBlockElement(anchor);
-            if (!block || block === editor) {
+            const element = anchor?.nodeType === Node.ELEMENT_NODE ? anchor : anchor?.parentElement;
+            let block = element?.closest("div, p, h1, h2, h3, blockquote, li");
+
+            if (!selection.rangeCount || !block) {
                 return false;
             }
 
-            const rawText = block.textContent.replace(/\u200B/g, "");
-            const headingMatch = rawText.match(/^(#{1,3})\s/);
-            const blockquoteMatch = rawText.match(/^>\s/);
-            const unorderedMatch = rawText.match(/^-\s/);
-            const orderedMatch = rawText.match(/^(\d+)\.\s/);
-
-            if (headingMatch) {
-                const level = headingMatch[1].length;
-                const content = rawText.slice(level + 1);
-                replaceBlock(block, `h${level}`, content);
-                return true;
+            if (block === editor) {
+                block = document.createElement("div");
+                block.append(...editor.childNodes);
+                editor.append(block);
             }
 
-            if (blockquoteMatch) {
-                const content = rawText.slice(2);
+            const text = block.textContent.replaceAll("\u200B", "");
+            const match = /^(#{1,3}|>|-|\d+\.)\s/.exec(text);
+            if (!match) {
+                return false;
+            }
+
+            const mark = match[1];
+            const content = text.slice(match[0].length);
+
+            if (mark.startsWith("#")) {
+                replaceBlock(block, `h${mark.length}`, content);
+            } else if (mark === ">") {
                 replaceBlock(block, "blockquote", content);
-                return true;
+            } else {
+                replaceWithList(block, mark === "-" ? "ul" : "ol", content);
             }
-
-            if (unorderedMatch) {
-                const content = rawText.slice(2);
-                replaceWithList(block, "ul", content);
-                return true;
-            }
-
-            if (orderedMatch) {
-                const content = rawText.slice(orderedMatch[0].length);
-                replaceWithList(block, "ol", content);
-                return true;
-            }
-
-            return false;
+            return true;
         }
 
-        function applyInlineFormatting() {
-            const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT, {
-                acceptNode: (node) => {
-                    if (!node.nodeValue || !node.nodeValue.trim()) {
-                        return NodeFilter.FILTER_SKIP;
-                    }
-                    if (node.parentElement && node.parentElement.closest("strong, em, [data-caret]")) {
-                        return NodeFilter.FILTER_SKIP;
-                    }
-                    return NodeFilter.FILTER_ACCEPT;
-                }
-            });
-
-            const textNodes = [];
-            while (walker.nextNode()) {
-                textNodes.push(walker.currentNode);
-            }
-
-            textNodes.forEach((node) => {
-                const escaped = escapeHtml(node.nodeValue);
-                let formatted = escaped;
-                inlineRules.forEach((rule) => {
-                    formatted = formatted.replace(rule.pattern, rule.replacement);
-                });
-
-                if (formatted !== escaped) {
-                    const wrapper = document.createElement("span");
-                    wrapper.innerHTML = formatted;
-                    const fragment = document.createDocumentFragment();
-                    while (wrapper.firstChild) {
-                        fragment.appendChild(wrapper.firstChild);
-                    }
-                    node.replaceWith(fragment);
-                }
-            });
+        function replaceBlock(block, tag, text) {
+            const replacement = document.createElement(tag);
+            replacement.append(text || document.createElement("br"));
+            block.replaceWith(replacement);
+            placeCaretAtEnd(replacement);
         }
 
-        function findBlockElement(node) {
-            let current = node;
-            while (current && current !== editor) {
-                if (current.nodeType === Node.ELEMENT_NODE) {
-                    const tag = current.tagName.toLowerCase();
-                    if (["div", "p", "h1", "h2", "h3", "blockquote", "li"].includes(tag)) {
-                        return current;
-                    }
-                }
-                current = current.parentNode;
-            }
-            return null;
-        }
-
-        function replaceBlock(block, tag, content) {
-            const element = document.createElement(tag);
-            element.textContent = content;
-            block.replaceWith(element);
-            placeCaretAtEnd(element);
-        }
-
-        function replaceWithList(block, listTag, content) {
-            const parentList = block.parentElement;
-            if (block.tagName && block.tagName.toLowerCase() === "li" && parentList && parentList.tagName.toLowerCase() === listTag) {
-                block.textContent = content;
+        function replaceWithList(block, tag, text) {
+            if (block.matches("li") && block.parentElement?.matches(tag)) {
+                block.replaceChildren(text || document.createElement("br"));
                 placeCaretAtEnd(block);
                 return;
             }
 
-            const list = document.createElement(listTag);
+            const list = document.createElement(tag);
             const item = document.createElement("li");
-            item.textContent = content;
-            list.appendChild(item);
+            item.append(text || document.createElement("br"));
+            list.append(item);
             block.replaceWith(list);
             placeCaretAtEnd(item);
         }
 
-        function insertCaretMarker() {
-            const selection = window.getSelection();
+        function formatInline() {
+            const caret = markCaret();
+            const cleanup = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
+            while (cleanup.nextNode()) {
+                cleanup.currentNode.data = cleanup.currentNode.data.replaceAll("\u200B", "");
+            }
+            editor.normalize();
+
+            const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
+            const nodes = [];
+
+            while (walker.nextNode()) {
+                const node = walker.currentNode;
+                if (node.data.trim() && !node.parentElement?.closest("strong, em, [data-caret]")) {
+                    nodes.push(node);
+                }
+            }
+            nodes.forEach(formatTextNode);
+            restoreCaret(caret);
+        }
+
+        function formatTextNode(node) {
+            const fragment = document.createDocumentFragment();
+            let end = 0;
+            let changed = false;
+
+            for (const match of node.data.matchAll(inlinePattern)) {
+                const mark = match[1] || "_";
+                const text = match[2] ?? match[3];
+                let element = document.createElement(mark.length === 2 ? "strong" : "em");
+                element.textContent = text;
+
+                if (mark.length === 3) {
+                    const strong = document.createElement("strong");
+                    strong.append(element);
+                    element = strong;
+                }
+
+                fragment.append(node.data.slice(end, match.index), element);
+                end = match.index + match[0].length;
+                changed = true;
+            }
+
+            if (changed) {
+                fragment.append(node.data.slice(end));
+                node.replaceWith(fragment);
+            }
+        }
+
+        function markCaret() {
+            const selection = getSelection();
             if (!selection.rangeCount) {
                 return null;
             }
-            const range = selection.getRangeAt(0);
+
             const marker = document.createElement("span");
-            marker.setAttribute("data-caret", "true");
-            marker.appendChild(document.createTextNode("\u200B"));
-            range.insertNode(marker);
+            marker.dataset.caret = "";
+            selection.getRangeAt(0).insertNode(marker);
             return marker;
         }
 
         function restoreCaret(marker) {
-            if (!marker || !marker.parentNode) {
+            if (!marker?.isConnected) {
                 return;
             }
-            const selection = window.getSelection();
+
+            const anchor = document.createTextNode("\u200B");
+            marker.replaceWith(anchor);
             const range = document.createRange();
-            range.setStart(marker.firstChild, 1);
+            range.setStart(anchor, 1);
             range.collapse(true);
+
+            const selection = getSelection();
             selection.removeAllRanges();
             selection.addRange(range);
-            marker.remove();
         }
 
         function placeCaretAtEnd(element) {
-            const selection = window.getSelection();
             const range = document.createRange();
             range.selectNodeContents(element);
             range.collapse(false);
+
+            const selection = getSelection();
             selection.removeAllRanges();
             selection.addRange(range);
         }
 
-        function escapeHtml(value) {
-            return value
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/\"/g, "&quot;")
-                .replace(/'/g, "&#39;");
+        setDarkMode(load("dark-mode") === "true");
+        setNavCollapsed(load("nav-collapsed") === "true");
+
+        const draft = load("draft");
+        if (draft !== null) {
+            editor.innerHTML = draft;
         }
-
-        const header = document.getElementById("top-nav");
-        const navToggle = document.getElementById("nav-toggle");
-        const toggleGlyph = navToggle.querySelector(".toggle-glyph");
-        const toggleLabel = navToggle.querySelector(".visually-hidden");
-        const themeToggle = document.getElementById("theme-toggle");
-        const themeLabel = themeToggle.querySelector(".visually-hidden");
-
-        navToggle.addEventListener("mousedown", (event) => {
-            event.preventDefault();
-        });
-
-        themeToggle.addEventListener("mousedown", (event) => {
-            event.preventDefault();
-        });
-
-        function setNavCollapsed(collapsed, persist = true) {
-            document.body.classList.toggle("nav-collapsed", collapsed);
-            navToggle.setAttribute("aria-expanded", String(!collapsed));
-            navToggle.setAttribute("aria-label", collapsed ? "Expand top bar" : "Collapse top bar");
-            navToggle.setAttribute("title", collapsed ? "Expand top bar" : "Collapse top bar");
-            toggleGlyph.textContent = collapsed ? "⌄" : "⌃";
-            toggleLabel.textContent = collapsed ? "Expand top bar" : "Collapse top bar";
-
-            if (persist) {
-                header.classList.remove("header-highlight");
-                void header.offsetWidth;
-                header.classList.add("header-highlight");
-            }
-
-            if (persist) {
-                try {
-                    localStorage.setItem("em-dash-nav-collapsed", String(collapsed));
-                } catch (error) {
-                    // Private browsing modes may disable local storage.
-                }
-            }
-        }
-
-        navToggle.addEventListener("click", () => {
-            setNavCollapsed(!document.body.classList.contains("nav-collapsed"));
-            editor.focus({ preventScroll: true });
-        });
-
-        function setDarkMode(dark, persist = true) {
-            document.body.classList.toggle("dark-mode", dark);
-            const action = dark ? "Switch to light mode" : "Switch to dark mode";
-            themeToggle.setAttribute("aria-pressed", String(dark));
-            themeToggle.setAttribute("aria-label", action);
-            themeToggle.setAttribute("title", action);
-            themeLabel.textContent = action;
-
-            if (persist) {
-                try {
-                    localStorage.setItem("em-dash-dark-mode", String(dark));
-                } catch (error) {
-                    // Private browsing modes may disable local storage.
-                }
-            }
-        }
-
-        themeToggle.addEventListener("click", () => {
-            setDarkMode(!document.body.classList.contains("dark-mode"));
-            editor.focus({ preventScroll: true });
-        });
-
-        try {
-            setDarkMode(localStorage.getItem("em-dash-dark-mode") === "true", false);
-        } catch (error) {
-            setDarkMode(false, false);
-        }
-
-        try {
-            setNavCollapsed(localStorage.getItem("em-dash-nav-collapsed") === "true", false);
-        } catch (error) {
-            setNavCollapsed(false, false);
-        }
-
-        restoreDraft();
         editor.focus();
     </script>
 </body>
