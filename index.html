@@ -3,32 +3,210 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>em-dash</title>
+    <title>em—dash</title>
     <style>
+        :root {
+            color-scheme: light;
+            --page-background: #ffffff;
+            --text-color: #171717;
+            --muted-color: #686868;
+            --control-border: #d8d8d8;
+            --control-hover: #f2f2f2;
+            --collapse-border: #777777;
+            --header-highlight: rgba(119, 119, 119, 0.14);
+            --header-highlight-edge: rgba(119, 119, 119, 0.62);
+        }
+
+        body.dark-mode {
+            color-scheme: dark;
+            --page-background: #171717;
+            --text-color: #eeeeee;
+            --muted-color: #aaaaaa;
+            --control-border: #505050;
+            --control-hover: #2a2a2a;
+            --collapse-border: #8a8a8a;
+            --header-highlight: rgba(238, 238, 238, 0.12);
+            --header-highlight-edge: rgba(238, 238, 238, 0.58);
+        }
+
+        html {
+            scrollbar-gutter: stable;
+        }
+
         * {
             box-sizing: border-box;
         }
 
         body {
             margin: 0;
+            background: var(--page-background);
+            color: var(--text-color);
+        }
+
+        a {
+            color: inherit;
         }
 
         .container {
             width: 70%;
             /* max-width: 760px; */
-            margin: 40px auto;
+            margin: 0 auto;
             padding: 0 20px 40px;
         }
 
         .header h1 {
+            margin: 0;
             text-align: center;
+            font-family: monospace;
+            transition: opacity 180ms ease, transform 180ms ease;
+        }
+
+        .byline {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin: 0;
+            color: var(--muted-color);
+            font-size: 0.95rem;
+            text-align: center;
+            transition: opacity 180ms ease, transform 180ms ease;
+        }
+
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            display: flex;
+            min-height: 88px;
+            align-items: center;
+            flex-direction: column;
+            gap: 8px;
+            justify-content: center;
+            background-color: var(--page-background);
+            transition: min-height 180ms ease;
+        }
+
+        .header.header-highlight {
+            animation: header-highlight 420ms ease-out;
+        }
+
+        @keyframes header-highlight {
+            0%,
+            100% {
+                background-color: var(--page-background);
+                box-shadow: inset 0 0 0 0 transparent;
+            }
+
+            28% {
+                background-color: var(--header-highlight);
+                box-shadow: inset 0 0 0 2px var(--header-highlight-edge);
+            }
+        }
+
+        .nav-toggle {
+            display: flex;
+            width: 40px;
+            min-width: 40px;
+            height: 28px;
+            flex: 0 0 28px;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            border: 0;
+            border-bottom: 2px solid var(--collapse-border);
+            border-radius: 0;
+            background: transparent;
+            color: var(--text-color);
+            cursor: pointer;
+            font: inherit;
+            line-height: 1;
+            opacity: 0.9;
+            transition: background 120ms ease, opacity 120ms ease;
+        }
+
+        .nav-toggle:hover {
+            background: var(--control-hover);
+            opacity: 1;
+        }
+
+        .toggle-glyph {
+            display: inline-block;
+            font-size: 1.45rem;
+            font-weight: 600;
+            line-height: 0.7;
+            animation: collapsed-chevron 0.8s ease-in-out infinite;
+        }
+
+        @keyframes collapsed-chevron {
+            0%,
+            100% {
+                opacity: 0.7;
+                transform: translateY(0);
+            }
+
+            50% {
+                opacity: 1;
+                transform: translateY(3px);
+            }
+        }
+
+        .theme-toggle {
+            display: inline-grid;
+            width: 24px;
+            height: 24px;
+            padding: 0;
+            place-items: center;
+            border: 1px solid var(--control-border);
+            border-radius: 50%;
+            background: transparent;
+            color: inherit;
+            cursor: pointer;
+            font: inherit;
+            line-height: 1;
+        }
+
+        .theme-toggle:hover {
+            background: var(--control-hover);
+        }
+
+        .theme-glyph {
+            display: inline-block;
+            opacity: 0.45;
+            filter: grayscale(1);
+            transition: opacity 120ms ease, filter 120ms ease;
+        }
+
+        body.dark-mode .theme-glyph {
+            opacity: 1;
+            filter: none;
+        }
+
+        .nav-toggle:focus-visible,
+        .theme-toggle:focus-visible {
+            outline: 2px solid currentColor;
+            outline-offset: 3px;
+        }
+
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
         }
 
         .editor {
             font-family: monospace;
+            font-size: 18px;
             min-height: 60vh;
             padding: 18px;
             line-height: 1.25;
+            caret-color: currentColor;
         }
 
         .editor:focus {
@@ -40,16 +218,75 @@
             color: #9a9a9a;
         } */
 
-        .footer {
-            text-align: center;
+        body.nav-collapsed .header {
+            min-height: 32px;
+            gap: 0;
+        }
+
+        body.nav-collapsed .nav-toggle {
+            border-top: 2px solid var(--collapse-border);
+            border-bottom: 0;
+        }
+
+        body.nav-collapsed .header h1,
+        body.nav-collapsed .byline {
+            visibility: hidden;
+            width: 0;
+            height: 0;
+            overflow: hidden;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(-8px);
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                width: 100%;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .header,
+            .header h1,
+            .byline,
+            .nav-toggle,
+            .toggle-glyph,
+            .theme-glyph {
+                transition: none;
+                animation: none;
+            }
         }
     </style>
 </head>
 <body>
+    <header class="header" id="top-nav">
+            <h1>em—dash</h1>
+            <p class="byline">
+                <button
+                    class="theme-toggle"
+                    id="theme-toggle"
+                    type="button"
+                    aria-pressed="false"
+                    aria-label="Switch to dark mode"
+                    title="Switch to dark mode">
+                    <span class="theme-glyph" aria-hidden="true">&#128161;</span>
+                    <span class="visually-hidden">Switch to dark mode</span>
+                </button>
+                <span>built by <a href="../index.html">Mukesh</a></span>
+            </p>
+            <button
+                class="nav-toggle"
+                id="nav-toggle"
+                type="button"
+                aria-controls="top-nav"
+                aria-expanded="true"
+                aria-label="Collapse top bar"
+                title="Collapse top bar">
+                <span class="toggle-glyph" aria-hidden="true">⌃</span>
+                <span class="visually-hidden">Collapse top bar</span>
+            </button>
+    </header>
     <main class="container">
-        <header class="header">
-            <h1>em-dash</h1>
-        </header>
         <div
             class="editor"
             id="editor"
@@ -59,10 +296,6 @@
             placeholder="start writing...">
         </div>
     </main>
-
-    <footer class="footer">
-        <p>built by <a href="../index.html">Mukesh</a></p>
-    </footer>
 
     <script>
         const editor = document.getElementById("editor");
@@ -255,6 +488,83 @@
                 .replace(/>/g, "&gt;")
                 .replace(/\"/g, "&quot;")
                 .replace(/'/g, "&#39;");
+        }
+
+        const header = document.getElementById("top-nav");
+        const navToggle = document.getElementById("nav-toggle");
+        const toggleGlyph = navToggle.querySelector(".toggle-glyph");
+        const toggleLabel = navToggle.querySelector(".visually-hidden");
+        const themeToggle = document.getElementById("theme-toggle");
+        const themeLabel = themeToggle.querySelector(".visually-hidden");
+
+        navToggle.addEventListener("mousedown", (event) => {
+            event.preventDefault();
+        });
+
+        themeToggle.addEventListener("mousedown", (event) => {
+            event.preventDefault();
+        });
+
+        function setNavCollapsed(collapsed, persist = true) {
+            document.body.classList.toggle("nav-collapsed", collapsed);
+            navToggle.setAttribute("aria-expanded", String(!collapsed));
+            navToggle.setAttribute("aria-label", collapsed ? "Expand top bar" : "Collapse top bar");
+            navToggle.setAttribute("title", collapsed ? "Expand top bar" : "Collapse top bar");
+            toggleGlyph.textContent = collapsed ? "⌄" : "⌃";
+            toggleLabel.textContent = collapsed ? "Expand top bar" : "Collapse top bar";
+
+            if (persist) {
+                header.classList.remove("header-highlight");
+                void header.offsetWidth;
+                header.classList.add("header-highlight");
+            }
+
+            if (persist) {
+                try {
+                    localStorage.setItem("em-dash-nav-collapsed", String(collapsed));
+                } catch (error) {
+                    // Private browsing modes may disable local storage.
+                }
+            }
+        }
+
+        navToggle.addEventListener("click", () => {
+            setNavCollapsed(!document.body.classList.contains("nav-collapsed"));
+            editor.focus({ preventScroll: true });
+        });
+
+        function setDarkMode(dark, persist = true) {
+            document.body.classList.toggle("dark-mode", dark);
+            const action = dark ? "Switch to light mode" : "Switch to dark mode";
+            themeToggle.setAttribute("aria-pressed", String(dark));
+            themeToggle.setAttribute("aria-label", action);
+            themeToggle.setAttribute("title", action);
+            themeLabel.textContent = action;
+
+            if (persist) {
+                try {
+                    localStorage.setItem("em-dash-dark-mode", String(dark));
+                } catch (error) {
+                    // Private browsing modes may disable local storage.
+                }
+            }
+        }
+
+        themeToggle.addEventListener("click", () => {
+            setDarkMode(!document.body.classList.contains("dark-mode"));
+            editor.focus({ preventScroll: true });
+        });
+
+        try {
+            setDarkMode(localStorage.getItem("em-dash-dark-mode") === "true", false);
+        } catch (error) {
+            setDarkMode(false, false);
+        }
+
+        try {
+            setNavCollapsed(localStorage.getItem("em-dash-nav-collapsed") === "true", false);
+        } catch (error) {
+            setNavCollapsed(false, false);
         }
 
         editor.focus();
