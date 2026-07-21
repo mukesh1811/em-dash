@@ -31,6 +31,7 @@
 
         html {
             scrollbar-gutter: stable;
+            scroll-padding-bottom: 60px;
         }
 
         * {
@@ -189,7 +190,7 @@
 
         .editor {
             min-height: 60vh;
-            padding: 18px;
+            padding: 18px 18px 60px;
             outline: none;
             font-size: 18px;
             line-height: 1.25;
@@ -249,6 +250,8 @@
         const editor = document.getElementById("editor");
         const navToggle = document.getElementById("nav-toggle");
         const themeToggle = document.getElementById("theme-toggle");
+        const caretAnchor = "\u200B";
+        const graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" });
         const inlinePattern = /(?<!\*)(\*{1,3})([^*]+)\1(?!\*)|(?<!_)_([^_]+)_(?!_)/g;
 
         function load(name) {
@@ -263,6 +266,10 @@
             try {
                 localStorage.setItem(`em-dash-${name}`, value);
             } catch {}
+        }
+
+        function saveDraft() {
+            save("draft", editor.innerHTML.replaceAll(caretAnchor, ""));
         }
 
         function setDarkMode(dark, persist = false) {
@@ -307,11 +314,57 @@
             editor.focus({ preventScroll: true });
         });
 
+        editor.addEventListener("beforeinput", (event) => {
+            if (event.inputType !== "deleteContentBackward") {
+                return;
+            }
+
+            const selection = getSelection();
+            const node = selection.anchorNode;
+            const offset = selection.anchorOffset;
+
+            if (selection.isCollapsed && node?.nodeType === Node.TEXT_NODE && node.data[offset - 1] === caretAnchor) {
+                let previous = offset === 1 ? node.previousSibling : null;
+
+                while (previous?.nodeType === Node.TEXT_NODE && !previous.data) {
+                    const empty = previous;
+                    previous = previous.previousSibling;
+                    empty.remove();
+                }
+
+                if (previous?.nodeType === Node.ELEMENT_NODE && previous.matches("strong, em")) {
+                    event.preventDefault();
+                    const walker = document.createTreeWalker(previous, NodeFilter.SHOW_TEXT);
+                    let lastText;
+
+                    while (walker.nextNode()) {
+                        lastText = walker.currentNode;
+                    }
+
+                    if (lastText?.data) {
+                        const last = [...graphemes.segment(lastText.data)].at(-1);
+                        lastText.deleteData(last.index, lastText.length - last.index);
+                    }
+                    previous.after(node);
+                    if (!previous.textContent) {
+                        previous.remove();
+                    }
+
+                    selection.collapse(node, node.length);
+                    saveDraft();
+                    return;
+                }
+
+                node.deleteData(offset - 1, 1);
+                selection.collapse(node, offset - 1);
+            }
+        });
+
         editor.addEventListener("input", (event) => {
             if (event.data !== " " || !formatBlock()) {
                 formatInline();
             }
-            save("draft", editor.innerHTML.replaceAll("\u200B", ""));
+            saveDraft();
         });
 
         function formatBlock() {
@@ -324,16 +377,16 @@
                 return false;
             }
 
+            const text = block.textContent.replaceAll(caretAnchor, "");
+            const match = /^(#{1,3}|>|-|\d+\.)\s/.exec(text);
+            if (!match) {
+                return false;
+            }
+
             if (block === editor) {
                 block = document.createElement("div");
                 block.append(...editor.childNodes);
                 editor.append(block);
-            }
-
-            const text = block.textContent.replaceAll("\u200B", "");
-            const match = /^(#{1,3}|>|-|\d+\.)\s/.exec(text);
-            if (!match) {
-                return false;
             }
 
             const mark = match[1];
@@ -375,7 +428,7 @@
             const caret = markCaret();
             const cleanup = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
             while (cleanup.nextNode()) {
-                cleanup.currentNode.data = cleanup.currentNode.data.replaceAll("\u200B", "");
+                cleanup.currentNode.data = cleanup.currentNode.data.replaceAll(caretAnchor, "");
             }
             editor.normalize();
 
@@ -437,7 +490,7 @@
                 return;
             }
 
-            const anchor = document.createTextNode("\u200B");
+            const anchor = document.createTextNode(caretAnchor);
             marker.replaceWith(anchor);
             const range = document.createRange();
             range.setStart(anchor, 1);
