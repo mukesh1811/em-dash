@@ -323,9 +323,10 @@
             gap: 4px;
         }
 
-        .tab-row {
+        .tab-row,
+        .subtab-row {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) 24px;
+            grid-template-columns: 24px minmax(0, 1fr) 24px;
             gap: 4px;
         }
 
@@ -356,8 +357,41 @@
         }
 
         .subtab-button {
-            margin-left: 18px;
             font-size: 0.92rem;
+        }
+
+        .subtab-row {
+            margin-left: 18px;
+        }
+
+        .delete-tab {
+            display: grid;
+            width: 24px;
+            height: 24px;
+            align-self: center;
+            place-items: center;
+            border: 1px solid transparent;
+            border-radius: 5px;
+            color: var(--muted);
+            opacity: 0;
+            transition: background 120ms ease, color 120ms ease, opacity 120ms ease;
+        }
+
+        .tab-row:hover .delete-tab,
+        .subtab-row:hover .delete-tab,
+        .delete-tab:focus-visible {
+            opacity: 1;
+        }
+
+        .delete-tab:hover {
+            background: var(--hover);
+            color: var(--text);
+        }
+
+        .delete-tab svg {
+            width: 14px;
+            height: 14px;
+            fill: currentColor;
         }
 
         .add-subtab {
@@ -622,10 +656,18 @@
 
                 const tabRow = document.createElement("div");
                 tabRow.className = "tab-row";
+                tabRow.append(createDeleteButton(tab, null));
                 tabRow.append(createTabButton(tab, tab.label, null));
                 tabRow.append(createAddSubtabButton(tab));
                 group.append(tabRow);
-                group.append(...tab.subtabs.map((subtab) => createTabButton(tab, subtab.label, subtab)));
+                group.append(...tab.subtabs.map((subtab) => {
+                    const subtabRow = document.createElement("div");
+                    subtabRow.className = "subtab-row";
+                    subtabRow.append(createDeleteButton(tab, subtab));
+                    subtabRow.append(createTabButton(tab, subtab.label, subtab));
+                    subtabRow.append(document.createElement("span"));
+                    return subtabRow;
+                }));
 
                 return group;
             }));
@@ -668,6 +710,58 @@
             button.setAttribute("aria-label", `Add subtab to ${tab.label}`);
             button.addEventListener("click", () => addSubtab(tab));
             return button;
+        }
+
+        function createDeleteButton(tab, subtab) {
+            const itemLabel = subtab ? subtab.label : tab.label;
+            const button = document.createElement("button");
+            button.className = "delete-tab";
+            button.type = "button";
+            button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l1 2h4v2h-1v13H5V7H4V5h4l1-2zm-2 4v11h10V7H7zm2 2h2v7H9V9zm4 0h2v7h-2V9z"></path></svg>';
+            const canDelete = Boolean(subtab) || tabs.length > 1;
+            button.title = canDelete ? `Delete ${itemLabel}` : "At least one tab is required";
+            button.setAttribute("aria-label", button.title);
+            button.disabled = !canDelete;
+            button.addEventListener("click", (event) => {
+                event.stopPropagation();
+                deleteTabItem(tab, subtab);
+            });
+            return button;
+        }
+
+        function deleteTabItem(tab, subtab) {
+            const itemLabel = subtab ? subtab.label : tab.label;
+            if (!subtab && tabs.length === 1) {
+                return;
+            }
+            const subtabWarning = !subtab && tab.subtabs.length
+                ? ` ${tab.subtabs.length} subtab${tab.subtabs.length === 1 ? "" : "s"} will also be deleted.`
+                : "";
+            if (!window.confirm(`Delete ${itemLabel}?${subtabWarning}`)) {
+                return;
+            }
+
+            saveDraft();
+            if (subtab) {
+                tab.subtabs = tab.subtabs.filter((candidate) => candidate.id !== subtab.id);
+                saveTabs();
+                if (activeTab === tab.id && activeSubtab === subtab.id) {
+                    setActiveDocument(tab.id, tab.subtabs[0]?.id ?? null, true);
+                } else {
+                    renderTabs();
+                }
+                return;
+            }
+
+            const deletedIndex = tabs.findIndex((candidate) => candidate.id === tab.id);
+            tabs.splice(deletedIndex, 1);
+            saveTabs();
+            if (activeTab === tab.id) {
+                const nextTab = tabs[deletedIndex] || tabs[deletedIndex - 1] || tabs[0];
+                setActiveDocument(nextTab.id, nextTab.subtabs[0]?.id ?? null, true);
+            } else {
+                renderTabs();
+            }
         }
 
         function focusRename(tabId, subtabId = null) {
