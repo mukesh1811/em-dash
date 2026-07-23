@@ -192,31 +192,29 @@
         }
 
         .workspace {
-            display: grid;
-            grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
-            width: min(1100px, 100%);
-            margin: auto;
-            padding: 0 20px 40px;
-            transition: grid-template-columns 180ms ease;
-        }
-
-        .sidebar-collapsed .workspace {
-            grid-template-columns: 42px minmax(0, 1fr);
+            display: block;
+            width: 100%;
+            margin: 0;
+            padding: 0 0 40px;
         }
 
         .sidebar {
-            position: sticky;
+            position: fixed;
+            left: 0;
             top: 88px;
-            align-self: start;
+            z-index: 2;
+            width: 220px;
             min-height: calc(100vh - 88px);
             padding: 18px 18px 0 0;
+            background: var(--background);
             border-right: 1px solid var(--control);
             color: var(--muted);
             overflow: hidden;
-            transition: top 180ms ease, min-height 180ms ease, padding 180ms ease;
+            transition: top 180ms ease, width 180ms ease, min-height 180ms ease, padding 180ms ease;
         }
 
         .sidebar-collapsed .sidebar {
+            width: 42px;
             padding-right: 0;
         }
 
@@ -373,12 +371,13 @@
 
         main {
             min-width: 0;
-            padding-left: 20px;
         }
 
         .editor {
             min-height: 60vh;
-            padding: 18px 18px 60px;
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 18px 28px 60px;
             outline: none;
             font-size: 18px;
             line-height: 1.25;
@@ -392,10 +391,15 @@
 
             .sidebar {
                 position: static;
+                width: auto;
                 min-height: 0;
                 padding: 12px 0;
                 border-right: 0;
                 border-bottom: 1px solid var(--control);
+            }
+
+            .sidebar-collapsed .sidebar {
+                width: auto;
             }
 
             .tab-list {
