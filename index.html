@@ -207,7 +207,6 @@
             min-height: calc(100vh - 88px);
             padding: 18px 18px 0 0;
             background: var(--background);
-            border-right: 1px solid var(--control);
             color: var(--muted);
             overflow: hidden;
             transition: top 180ms ease, width 180ms ease, min-height 180ms ease, padding 180ms ease;
@@ -224,6 +223,7 @@
         }
 
         .sidebar-header {
+            position: relative;
             display: flex;
             align-items: center;
             justify-content: flex-end;
@@ -232,6 +232,8 @@
         }
 
         .sidebar-title {
+            position: absolute;
+            left: 28px;
             margin: 0;
             color: var(--text);
             font-family: monospace;
@@ -239,7 +241,6 @@
             letter-spacing: 0.08em;
             text-transform: uppercase;
             transition: opacity 180ms ease, transform 180ms ease;
-            margin-right: auto;
         }
 
         .add-tab,
