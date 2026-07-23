@@ -96,11 +96,19 @@
             outline-offset: 3px;
         }
 
-        .theme-toggle {
+        .theme-toggle,
+        .nav-toggle,
+        .sidebar-toggle,
+        .add-tab,
+        .add-subtab,
+        .delete-tab {
             display: grid;
+            place-items: center;
+        }
+
+        .theme-toggle {
             width: 24px;
             height: 24px;
-            place-items: center;
             border: 1px solid var(--control);
             border-radius: 50%;
         }
@@ -118,15 +126,17 @@
         }
 
         .theme-toggle:hover,
-        .nav-toggle:hover {
+        .nav-toggle:hover,
+        .sidebar-toggle:hover,
+        .add-tab:hover,
+        .add-subtab:hover,
+        .delete-tab:hover {
             background: var(--hover);
         }
 
         .nav-toggle {
-            display: grid;
             width: 40px;
             height: 28px;
-            place-items: center;
             border: 0;
             border-bottom: 2px solid var(--rule);
             opacity: 0.9;
@@ -192,24 +202,22 @@
         }
 
         .workspace {
-            display: block;
-            width: 100%;
-            margin: 0;
-            padding: 0 0 40px;
+            padding-bottom: 40px;
         }
 
         .sidebar {
             position: fixed;
             left: 0;
             top: 88px;
+            bottom: 0;
             z-index: 2;
             width: 220px;
-            min-height: calc(100vh - 88px);
             padding: 18px 18px 0 0;
             background: var(--background);
             color: var(--muted);
-            overflow: hidden;
-            transition: top 180ms ease, width 180ms ease, min-height 180ms ease, padding 180ms ease;
+            overflow-x: hidden;
+            overflow-y: auto;
+            transition: top 180ms ease, width 180ms ease, padding 180ms ease;
         }
 
         .sidebar-collapsed .sidebar {
@@ -219,7 +227,6 @@
 
         .nav-collapsed .sidebar {
             top: 32px;
-            min-height: calc(100vh - 32px);
         }
 
         .sidebar-header {
@@ -245,12 +252,8 @@
 
         .add-tab,
         .add-subtab {
-            display: grid;
-            place-items: center;
             border: 1px solid var(--control);
             color: var(--muted);
-            background: transparent;
-            cursor: pointer;
         }
 
         .add-tab {
@@ -263,16 +266,13 @@
 
         .add-tab:hover,
         .add-subtab:hover {
-            background: var(--hover);
             color: var(--text);
         }
 
         .sidebar-toggle {
-            display: grid;
             width: 28px;
             height: 40px;
             flex: 0 0 auto;
-            place-items: center;
             border: 0;
             border-right: 2px solid var(--rule);
             opacity: 0.9;
@@ -280,7 +280,6 @@
         }
 
         .sidebar-toggle:hover {
-            background: var(--hover);
             opacity: 1;
         }
 
@@ -327,8 +326,16 @@
         .tab-row,
         .subtab-row {
             display: grid;
-            grid-template-columns: 24px minmax(0, 1fr) 24px;
             gap: 4px;
+        }
+
+        .tab-row {
+            grid-template-columns: 24px minmax(0, 1fr) 24px;
+        }
+
+        .subtab-row {
+            grid-template-columns: 24px minmax(0, 1fr);
+            margin-left: 18px;
         }
 
         .tab-button,
@@ -361,16 +368,10 @@
             font-size: 0.92rem;
         }
 
-        .subtab-row {
-            margin-left: 18px;
-        }
-
         .delete-tab {
-            display: grid;
             width: 24px;
             height: 24px;
             align-self: center;
-            place-items: center;
             border: 1px solid transparent;
             border-radius: 5px;
             color: var(--muted);
@@ -385,7 +386,6 @@
         }
 
         .delete-tab:hover {
-            background: var(--hover);
             color: var(--text);
         }
 
@@ -404,10 +404,6 @@
             line-height: 1;
         }
 
-        main {
-            min-width: 0;
-        }
-
         .editor {
             min-height: 60vh;
             max-width: 760px;
@@ -420,17 +416,16 @@
 
         @media (max-width: 640px) {
             .workspace {
-                display: block;
                 padding: 0 14px 32px;
             }
 
             .sidebar {
                 position: static;
+                bottom: auto;
                 width: auto;
-                min-height: 0;
                 padding: 12px 0;
-                border-right: 0;
                 border-bottom: 1px solid var(--control);
+                overflow: visible;
             }
 
             .sidebar-collapsed .sidebar {
@@ -444,16 +439,12 @@
                 padding-bottom: 6px;
             }
 
-            main {
-                padding-left: 0;
-            }
         }
 
         @media (prefers-reduced-motion: reduce) {
             .header,
             .header *,
             .header *::before,
-            .workspace,
             .sidebar,
             .sidebar *,
             .sidebar *::before {
@@ -526,6 +517,8 @@
         const caretAnchor = "\u200B";
         const graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" });
         const inlinePattern = /(?<!\*)(\*{1,3})([^*]+)\1(?!\*)|(?<!_)_([^_]+)_(?!_)/g;
+        const storagePrefix = "em-dash-";
+        const tabDoubleClickWindow = 400;
         const defaultTabs = [
             { id: "write", label: "Write", subtabs: [{ id: "draft", label: "Draft" }] },
             { id: "notes", label: "Notes", subtabs: [{ id: "ideas", label: "Ideas" }] },
@@ -533,8 +526,8 @@
         ];
         const tabs = loadTabs();
         let tabClickTimer = null;
-        const tabDoubleClickWindow = 400;
-        let activeTab = tabs.some((tab) => tab.id === load("active-tab")) ? load("active-tab") : tabs[0].id;
+        const storedActiveTab = load("active-tab");
+        let activeTab = tabs.some((tab) => tab.id === storedActiveTab) ? storedActiveTab : tabs[0].id;
         let activeSubtab = load("active-subtab");
         if (!tabs.find((tab) => tab.id === activeTab)?.subtabs.some((subtab) => subtab.id === activeSubtab)) {
             activeSubtab = null;
@@ -542,7 +535,7 @@
 
         function load(name) {
             try {
-                return localStorage.getItem(`em-dash-${name}`);
+                return localStorage.getItem(storagePrefix + name);
             } catch {
                 return null;
             }
@@ -550,8 +543,13 @@
 
         function save(name, value) {
             try {
-                localStorage.setItem(`em-dash-${name}`, value);
+                localStorage.setItem(storagePrefix + name, value);
             } catch {}
+        }
+
+        function labelButton(button, label) {
+            button.setAttribute("aria-label", label);
+            button.title = label;
         }
 
         function cloneDefaultTabs() {
@@ -562,10 +560,9 @@
         }
 
         function createId(prefix) {
-            if (crypto.randomUUID) {
-                return `${prefix}-${crypto.randomUUID()}`;
-            }
-            return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+            const id = globalThis.crypto?.randomUUID?.()
+                || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+            return `${prefix}-${id}`;
         }
 
         function normalizeTabs(value) {
@@ -573,19 +570,26 @@
                 return null;
             }
 
-            const normalized = value
-                .filter((tab) => tab && typeof tab.id === "string" && typeof tab.label === "string")
-                .map((tab) => ({
+            const normalized = value.flatMap((tab) => {
+                if (!tab || typeof tab.id !== "string" || typeof tab.label !== "string") {
+                    return [];
+                }
+
+                const subtabs = Array.isArray(tab.subtabs)
+                    ? tab.subtabs
+                    : tab.subtab ? [tab.subtab] : [];
+
+                return [{
                     id: tab.id,
                     label: tab.label.trim() || "Untitled tab",
-                    subtabs: Array.isArray(tab.subtabs)
-                        ? tab.subtabs
-                            .filter((subtab) => subtab && typeof subtab.id === "string" && typeof subtab.label === "string")
-                            .map((subtab) => ({ id: subtab.id, label: subtab.label.trim() || "Untitled subtab" }))
-                        : tab.subtab && typeof tab.subtab.id === "string"
-                            ? [{ id: tab.subtab.id, label: tab.subtab.label || "Untitled subtab" }]
-                            : []
-                }));
+                    subtabs: subtabs
+                        .filter((subtab) => subtab && typeof subtab.id === "string" && typeof subtab.label === "string")
+                        .map((subtab) => ({
+                            id: subtab.id,
+                            label: subtab.label.trim() || "Untitled subtab"
+                        }))
+                }];
+            });
 
             return normalized.length ? normalized : null;
         }
@@ -603,14 +607,16 @@
                     return loadedTabs;
                 }
 
-                const legacyTabs = defaultTabs.map((tab) => ({
-                    ...tab,
-                    label: parsed[tab.id]?.label || tab.label,
-                    subtabs: parsed[tab.id]?.subtab
-                        ? [{ ...tab.subtabs[0], label: parsed[tab.id].subtab }]
-                        : tab.subtabs.map((subtab) => ({ ...subtab }))
-                }));
-                return legacyTabs;
+                return defaultTabs.map((tab) => {
+                    const savedTab = parsed?.[tab.id];
+                    return {
+                        ...tab,
+                        label: savedTab?.label || tab.label,
+                        subtabs: savedTab?.subtab
+                            ? [{ ...tab.subtabs[0], label: savedTab.subtab }]
+                            : tab.subtabs.map((subtab) => ({ ...subtab }))
+                    };
+                });
             } catch {
                 return cloneDefaultTabs();
             }
@@ -637,16 +643,14 @@
             editor.setAttribute("aria-label", `${activeLabel}${subtabLabel ? `, ${subtabLabel}` : ""} document`);
         }
 
-        function setActiveDocument(tabId, subtabId = null, persist = false) {
+        function setActiveDocument(tabId, subtabId = null) {
             saveDraft();
             activeTab = tabId;
             activeSubtab = subtabId;
+            save("active-tab", activeTab);
+            save("active-subtab", activeSubtab ?? "");
             renderTabs();
             loadDraft();
-            if (persist) {
-                save("active-tab", activeTab);
-                save("active-subtab", activeSubtab ?? "");
-            }
             editor.focus({ preventScroll: true });
         }
 
@@ -654,33 +658,31 @@
             tabList.replaceChildren(...tabs.map((tab) => {
                 const group = document.createElement("div");
                 group.className = "tab-group";
-
-                const tabRow = document.createElement("div");
-                tabRow.className = "tab-row";
-                tabRow.append(createDeleteButton(tab, null));
-                tabRow.append(createTabButton(tab, tab.label, null));
-                tabRow.append(createAddSubtabButton(tab));
-                group.append(tabRow);
-                group.append(...tab.subtabs.map((subtab) => {
-                    const subtabRow = document.createElement("div");
-                    subtabRow.className = "subtab-row";
-                    subtabRow.append(createDeleteButton(tab, subtab));
-                    subtabRow.append(createTabButton(tab, subtab.label, subtab));
-                    subtabRow.append(document.createElement("span"));
-                    return subtabRow;
-                }));
-
+                group.append(
+                    createTabRow(tab),
+                    ...tab.subtabs.map((subtab) => createTabRow(tab, subtab))
+                );
                 return group;
             }));
         }
 
-        function createTabButton(tab, label, subtab) {
+        function createTabRow(tab, subtab = null) {
+            const row = document.createElement("div");
+            row.className = subtab ? "subtab-row" : "tab-row";
+            row.append(createDeleteButton(tab, subtab), createTabButton(tab, subtab));
+            if (!subtab) {
+                row.append(createAddSubtabButton(tab));
+            }
+            return row;
+        }
+
+        function createTabButton(tab, subtab = null) {
             const isSubtab = Boolean(subtab);
             const isActive = activeTab === tab.id && activeSubtab === (subtab?.id ?? null);
             const button = document.createElement("button");
             button.className = `tab-button${isSubtab ? " subtab-button" : ""}${isActive ? " active" : ""}`;
             button.type = "button";
-            button.textContent = label;
+            button.textContent = subtab?.label ?? tab.label;
             button.dataset.tabId = tab.id;
             if (subtab) {
                 button.dataset.subtabId = subtab.id;
@@ -688,18 +690,23 @@
             button.setAttribute("aria-pressed", String(isActive));
             button.title = "Double-click to rename";
             button.addEventListener("click", () => {
-                clearTimeout(tabClickTimer);
+                cancelTabClick();
                 tabClickTimer = setTimeout(() => {
                     tabClickTimer = null;
-                    setActiveDocument(tab.id, subtab?.id ?? null, true);
+                    setActiveDocument(tab.id, subtab?.id ?? null);
                 }, tabDoubleClickWindow);
             });
             button.addEventListener("dblclick", (event) => {
                 event.preventDefault();
-                clearTimeout(tabClickTimer);
+                cancelTabClick();
                 startRename(button, tab, subtab);
             });
             return button;
+        }
+
+        function cancelTabClick() {
+            clearTimeout(tabClickTimer);
+            tabClickTimer = null;
         }
 
         function createAddSubtabButton(tab) {
@@ -707,8 +714,7 @@
             button.className = "add-subtab";
             button.type = "button";
             button.textContent = "+";
-            button.title = `Add subtab to ${tab.label}`;
-            button.setAttribute("aria-label", `Add subtab to ${tab.label}`);
+            labelButton(button, `Add subtab to ${tab.label}`);
             button.addEventListener("click", () => addSubtab(tab));
             return button;
         }
@@ -720,13 +726,9 @@
             button.type = "button";
             button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l1 2h4v2h-1v13H5V7H4V5h4l1-2zm-2 4v11h10V7H7zm2 2h2v7H9V9zm4 0h2v7h-2V9z"></path></svg>';
             const canDelete = Boolean(subtab) || tabs.length > 1;
-            button.title = canDelete ? `Delete ${itemLabel}` : "At least one tab is required";
-            button.setAttribute("aria-label", button.title);
+            labelButton(button, canDelete ? `Delete ${itemLabel}` : "At least one tab is required");
             button.disabled = !canDelete;
-            button.addEventListener("click", (event) => {
-                event.stopPropagation();
-                deleteTabItem(tab, subtab);
-            });
+            button.addEventListener("click", () => deleteTabItem(tab, subtab));
             return button;
         }
 
@@ -742,12 +744,11 @@
                 return;
             }
 
-            saveDraft();
             if (subtab) {
                 tab.subtabs = tab.subtabs.filter((candidate) => candidate.id !== subtab.id);
                 saveTabs();
                 if (activeTab === tab.id && activeSubtab === subtab.id) {
-                    setActiveDocument(tab.id, tab.subtabs[0]?.id ?? null, true);
+                    setActiveDocument(tab.id, tab.subtabs[0]?.id ?? null);
                 } else {
                     renderTabs();
                 }
@@ -759,21 +760,19 @@
             saveTabs();
             if (activeTab === tab.id) {
                 const nextTab = tabs[deletedIndex] || tabs[deletedIndex - 1] || tabs[0];
-                setActiveDocument(nextTab.id, nextTab.subtabs[0]?.id ?? null, true);
+                setActiveDocument(nextTab.id, nextTab.subtabs[0]?.id ?? null);
             } else {
                 renderTabs();
             }
         }
 
-        function focusRename(tabId, subtabId = null) {
-            const selector = subtabId
-                ? `.tab-button[data-tab-id="${tabId}"][data-subtab-id="${subtabId}"]`
-                : `.tab-button[data-tab-id="${tabId}"]:not([data-subtab-id])`;
-            const button = tabList.querySelector(selector);
+        function focusRename(tab, subtab = null) {
+            const button = [...tabList.querySelectorAll(".tab-button")].find((candidate) =>
+                candidate.dataset.tabId === tab.id
+                && (candidate.dataset.subtabId || null) === (subtab?.id ?? null)
+            );
             if (button) {
-                startRename(button, tabs.find((tab) => tab.id === tabId), subtabId
-                    ? tabs.find((tab) => tab.id === tabId).subtabs.find((subtab) => subtab.id === subtabId)
-                    : null);
+                startRename(button, tab, subtab);
             }
         }
 
@@ -781,20 +780,20 @@
             const tab = { id: createId("tab"), label: "New tab", subtabs: [] };
             tabs.push(tab);
             saveTabs();
-            setActiveDocument(tab.id, null, true);
-            focusRename(tab.id);
+            setActiveDocument(tab.id);
+            focusRename(tab);
         }
 
         function addSubtab(tab) {
             const subtab = { id: createId("subtab"), label: "New subtab" };
             tab.subtabs.push(subtab);
             saveTabs();
-            setActiveDocument(tab.id, subtab.id, true);
-            focusRename(tab.id, subtab.id);
+            setActiveDocument(tab.id, subtab.id);
+            focusRename(tab, subtab);
         }
 
         function startRename(button, tab, subtab) {
-            clearTimeout(tabClickTimer);
+            cancelTabClick();
             const input = document.createElement("input");
             input.className = button.className.replace("tab-button", "tab-rename");
             input.value = subtab ? subtab.label : tab.label;
@@ -836,54 +835,42 @@
             });
         }
 
-        function setDarkMode(dark, persist = false) {
+        function setDarkMode(dark) {
             const action = dark ? "Switch to light mode" : "Switch to dark mode";
             root.classList.toggle("dark-mode", dark);
             themeToggle.setAttribute("aria-pressed", String(dark));
-            themeToggle.setAttribute("aria-label", action);
-            themeToggle.title = action;
-
-            if (persist) {
-                save("dark-mode", dark);
-            }
+            labelButton(themeToggle, action);
         }
 
-        function setSidebarCollapsed(collapsed, persist = false) {
+        function flash(element) {
+            element.classList.remove("flash");
+            requestAnimationFrame(() => element.classList.add("flash"));
+        }
+
+        function setSidebarCollapsed(collapsed, animate = false) {
             const action = collapsed ? "Expand sidebar" : "Collapse sidebar";
             root.classList.toggle("sidebar-collapsed", collapsed);
             sidebarToggle.setAttribute("aria-expanded", String(!collapsed));
-            sidebarToggle.setAttribute("aria-label", action);
-            sidebarToggle.title = action;
-
-            if (persist) {
-                sidebar.classList.remove("flash");
-                requestAnimationFrame(() => sidebar.classList.add("flash"));
-                save("sidebar-collapsed", collapsed);
+            labelButton(sidebarToggle, action);
+            if (animate) {
+                flash(sidebar);
             }
         }
 
-        function setNavCollapsed(collapsed, persist = false) {
+        function setNavCollapsed(collapsed, animate = false) {
             const action = collapsed ? "Expand top bar" : "Collapse top bar";
             root.classList.toggle("nav-collapsed", collapsed);
             navToggle.setAttribute("aria-expanded", String(!collapsed));
-            navToggle.setAttribute("aria-label", action);
-            navToggle.title = action;
-
-            if (persist) {
-                header.classList.remove("flash");
-                requestAnimationFrame(() => header.classList.add("flash"));
-                save("nav-collapsed", collapsed);
+            labelButton(navToggle, action);
+            if (animate) {
+                flash(header);
             }
         }
 
-        header.addEventListener("mousedown", (event) => {
-            if (event.target.closest("button")) {
-                event.preventDefault();
-            }
-        });
-
         themeToggle.addEventListener("click", () => {
-            setDarkMode(!root.classList.contains("dark-mode"), true);
+            const dark = !root.classList.contains("dark-mode");
+            setDarkMode(dark);
+            save("dark-mode", dark);
             editor.focus({ preventScroll: true });
         });
 
@@ -1097,8 +1084,8 @@
         }
 
         setDarkMode(load("dark-mode") === "true");
-        setNavCollapsed(load("nav-collapsed") === "true");
-        setSidebarCollapsed(load("sidebar-collapsed") === "true");
+        setNavCollapsed(true);
+        setSidebarCollapsed(true);
         renderTabs();
         loadDraft();
         editor.focus();
