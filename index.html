@@ -184,12 +184,24 @@
             }
         }
 
+        @keyframes sidebar-chevron {
+            50% {
+                opacity: 1;
+                transform: translateX(-3px);
+            }
+        }
+
         .workspace {
             display: grid;
             grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
             width: min(1100px, 100%);
             margin: auto;
             padding: 0 20px 40px;
+            transition: grid-template-columns 180ms ease;
+        }
+
+        .sidebar-collapsed .workspace {
+            grid-template-columns: 42px minmax(0, 1fr);
         }
 
         .sidebar {
@@ -200,7 +212,12 @@
             padding: 18px 18px 0 0;
             border-right: 1px solid var(--control);
             color: var(--muted);
-            transition: top 180ms ease, min-height 180ms ease;
+            overflow: hidden;
+            transition: top 180ms ease, min-height 180ms ease, padding 180ms ease;
+        }
+
+        .sidebar-collapsed .sidebar {
+            padding-right: 0;
         }
 
         .nav-collapsed .sidebar {
@@ -208,18 +225,74 @@
             min-height: calc(100vh - 32px);
         }
 
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
         .sidebar-title {
-            margin: 0 0 14px;
+            margin: 0;
             color: var(--text);
             font-family: monospace;
             font-size: 0.8rem;
             letter-spacing: 0.08em;
             text-transform: uppercase;
+            transition: opacity 180ms ease, transform 180ms ease;
+        }
+
+        .sidebar-toggle {
+            display: grid;
+            width: 28px;
+            height: 40px;
+            flex: 0 0 auto;
+            place-items: center;
+            border: 0;
+            border-right: 2px solid var(--rule);
+            opacity: 0.9;
+            transition: background 120ms ease, opacity 120ms ease;
+        }
+
+        .sidebar-toggle:hover {
+            background: var(--hover);
+            opacity: 1;
+        }
+
+        .sidebar-toggle::before {
+            content: "\2039";
+            font-size: 1.45rem;
+            font-weight: 600;
+            line-height: 0.7;
+            animation: sidebar-chevron 0.8s ease-in-out infinite;
+        }
+
+        .sidebar-collapsed .sidebar-toggle {
+            border-right: 0;
+            border-left: 2px solid var(--rule);
+        }
+
+        .sidebar-collapsed .sidebar-toggle::before {
+            content: "\203a";
+        }
+
+        .sidebar-collapsed .sidebar-title,
+        .sidebar-collapsed .tab-list {
+            position: absolute;
+            visibility: hidden;
+            opacity: 0;
+            transform: translateX(-8px);
+        }
+
+        .sidebar.flash {
+            animation: flash 420ms ease-out;
         }
 
         .tab-list {
             display: grid;
             gap: 6px;
+            transition: opacity 180ms ease, transform 180ms ease;
         }
 
         .tab-group {
@@ -227,12 +300,19 @@
             gap: 4px;
         }
 
-        .tab-button {
+        .tab-button,
+        .tab-rename {
             width: 100%;
             padding: 8px 10px;
             border: 1px solid transparent;
             border-radius: 8px;
             text-align: left;
+        }
+
+        .tab-rename {
+            background: var(--background);
+            color: var(--text);
+            font: inherit;
         }
 
         .tab-button:hover {
@@ -293,7 +373,11 @@
         @media (prefers-reduced-motion: reduce) {
             .header,
             .header *,
-            .header *::before {
+            .header *::before,
+            .workspace,
+            .sidebar,
+            .sidebar *,
+            .sidebar *::before {
                 animation: none;
                 transition: none;
             }
@@ -324,8 +408,18 @@
     </header>
 
     <div class="workspace">
-        <aside class="sidebar" aria-label="Documents">
-            <h2 class="sidebar-title">Documents</h2>
+        <aside class="sidebar" id="sidebar" aria-label="Documents">
+            <div class="sidebar-header">
+                <h2 class="sidebar-title">Documents</h2>
+                <button
+                    class="sidebar-toggle"
+                    id="sidebar-toggle"
+                    type="button"
+                    aria-controls="tab-list"
+                    aria-expanded="true"
+                    aria-label="Collapse sidebar"
+                    title="Collapse sidebar"></button>
+            </div>
             <nav class="tab-list" id="tab-list" aria-label="Document tabs"></nav>
         </aside>
 
@@ -343,17 +437,20 @@
         const root = document.documentElement;
         const header = document.getElementById("header");
         const editor = document.getElementById("editor");
+        const sidebar = document.getElementById("sidebar");
         const tabList = document.getElementById("tab-list");
         const navToggle = document.getElementById("nav-toggle");
+        const sidebarToggle = document.getElementById("sidebar-toggle");
         const themeToggle = document.getElementById("theme-toggle");
         const caretAnchor = "\u200B";
         const graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" });
         const inlinePattern = /(?<!\*)(\*{1,3})([^*]+)\1(?!\*)|(?<!_)_([^_]+)_(?!_)/g;
-        const tabs = [
+        const defaultTabs = [
             { id: "write", label: "Write", subtab: { id: "draft", label: "Draft" } },
             { id: "notes", label: "Notes", subtab: { id: "ideas", label: "Ideas" } },
             { id: "archive", label: "Archive", subtab: { id: "saved", label: "Saved" } }
         ];
+        const tabs = loadTabs();
         let activeTab = tabs.some((tab) => tab.id === load("active-tab")) ? load("active-tab") : tabs[0].id;
         let activeSubtab = load("active-subtab");
         if (!tabs.find((tab) => tab.id === activeTab)?.subtab || tabs.find((tab) => tab.id === activeTab).subtab.id !== activeSubtab) {
@@ -372,6 +469,40 @@
             try {
                 localStorage.setItem(`em-dash-${name}`, value);
             } catch {}
+        }
+
+        function cloneDefaultTabs() {
+            return defaultTabs.map((tab) => ({
+                ...tab,
+                subtab: tab.subtab ? { ...tab.subtab } : null
+            }));
+        }
+
+        function loadTabs() {
+            const stored = load("tabs");
+            if (!stored) {
+                return cloneDefaultTabs();
+            }
+
+            try {
+                const labels = JSON.parse(stored);
+                return defaultTabs.map((tab) => ({
+                    ...tab,
+                    label: labels[tab.id]?.label || tab.label,
+                    subtab: tab.subtab
+                        ? { ...tab.subtab, label: labels[tab.id]?.subtab || tab.subtab.label }
+                        : null
+                }));
+            } catch {
+                return cloneDefaultTabs();
+            }
+        }
+
+        function saveTabs() {
+            save("tabs", JSON.stringify(Object.fromEntries(tabs.map((tab) => [
+                tab.id,
+                { label: tab.label, subtab: tab.subtab?.label || "" }
+            ]))));
         }
 
         function currentDocumentKey() {
@@ -410,26 +541,70 @@
                 const group = document.createElement("div");
                 group.className = "tab-group";
 
-                const button = document.createElement("button");
-                button.className = `tab-button${activeTab === tab.id && !activeSubtab ? " active" : ""}`;
-                button.type = "button";
-                button.textContent = tab.label;
-                button.setAttribute("aria-pressed", String(activeTab === tab.id && !activeSubtab));
-                button.addEventListener("click", () => setActiveDocument(tab.id, null, true));
-                group.append(button);
+                group.append(createTabButton(tab, tab.label, null));
 
-                if (tab.subtab && activeTab === tab.id) {
-                    const subtab = document.createElement("button");
-                    subtab.className = `tab-button subtab-button${activeSubtab === tab.subtab.id ? " active" : ""}`;
-                    subtab.type = "button";
-                    subtab.textContent = tab.subtab.label;
-                    subtab.setAttribute("aria-pressed", String(activeSubtab === tab.subtab.id));
-                    subtab.addEventListener("click", () => setActiveDocument(tab.id, tab.subtab.id, true));
-                    group.append(subtab);
+                if (tab.subtab) {
+                    group.append(createTabButton(tab, tab.subtab.label, tab.subtab));
                 }
 
                 return group;
             }));
+        }
+
+        function createTabButton(tab, label, subtab) {
+            const isSubtab = Boolean(subtab);
+            const isActive = activeTab === tab.id && activeSubtab === (subtab?.id ?? null);
+            const button = document.createElement("button");
+            button.className = `tab-button${isSubtab ? " subtab-button" : ""}${isActive ? " active" : ""}`;
+            button.type = "button";
+            button.textContent = label;
+            button.setAttribute("aria-pressed", String(isActive));
+            button.title = "Double-click to rename";
+            button.addEventListener("click", () => setActiveDocument(tab.id, subtab?.id ?? null, true));
+            button.addEventListener("dblclick", () => startRename(button, tab, subtab));
+            return button;
+        }
+
+        function startRename(button, tab, subtab) {
+            const input = document.createElement("input");
+            input.className = button.className.replace("tab-button", "tab-rename");
+            input.value = subtab ? subtab.label : tab.label;
+            input.setAttribute("aria-label", `Rename ${subtab ? "subtab" : "tab"}`);
+            button.replaceWith(input);
+            input.focus();
+            input.select();
+
+            let renamed = false;
+            const finish = (commit) => {
+                if (renamed) {
+                    return;
+                }
+                renamed = true;
+                if (commit) {
+                    const nextLabel = input.value.trim();
+                    if (nextLabel) {
+                        if (subtab) {
+                            subtab.label = nextLabel;
+                        } else {
+                            tab.label = nextLabel;
+                        }
+                        saveTabs();
+                    }
+                }
+                renderTabs();
+                loadDraft();
+            };
+
+            input.addEventListener("blur", () => finish(true), { once: true });
+            input.addEventListener("keydown", (event) => {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    finish(true);
+                } else if (event.key === "Escape") {
+                    event.preventDefault();
+                    finish(false);
+                }
+            });
         }
 
         function setDarkMode(dark, persist = false) {
@@ -441,6 +616,20 @@
 
             if (persist) {
                 save("dark-mode", dark);
+            }
+        }
+
+        function setSidebarCollapsed(collapsed, persist = false) {
+            const action = collapsed ? "Expand sidebar" : "Collapse sidebar";
+            root.classList.toggle("sidebar-collapsed", collapsed);
+            sidebarToggle.setAttribute("aria-expanded", String(!collapsed));
+            sidebarToggle.setAttribute("aria-label", action);
+            sidebarToggle.title = action;
+
+            if (persist) {
+                sidebar.classList.remove("flash");
+                requestAnimationFrame(() => sidebar.classList.add("flash"));
+                save("sidebar-collapsed", collapsed);
             }
         }
 
@@ -471,6 +660,11 @@
 
         navToggle.addEventListener("click", () => {
             setNavCollapsed(!root.classList.contains("nav-collapsed"), true);
+            editor.focus({ preventScroll: true });
+        });
+
+        sidebarToggle.addEventListener("click", () => {
+            setSidebarCollapsed(!root.classList.contains("sidebar-collapsed"), true);
             editor.focus({ preventScroll: true });
         });
 
@@ -673,6 +867,7 @@
 
         setDarkMode(load("dark-mode") === "true");
         setNavCollapsed(load("nav-collapsed") === "true");
+        setSidebarCollapsed(load("sidebar-collapsed") === "true");
         renderTabs();
         loadDraft();
         editor.focus();
