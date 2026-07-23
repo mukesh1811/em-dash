@@ -451,6 +451,8 @@
             { id: "archive", label: "Archive", subtab: { id: "saved", label: "Saved" } }
         ];
         const tabs = loadTabs();
+        let tabClickTimer = null;
+        const tabDoubleClickWindow = 400;
         let activeTab = tabs.some((tab) => tab.id === load("active-tab")) ? load("active-tab") : tabs[0].id;
         let activeSubtab = load("active-subtab");
         if (!tabs.find((tab) => tab.id === activeTab)?.subtab || tabs.find((tab) => tab.id === activeTab).subtab.id !== activeSubtab) {
@@ -560,12 +562,23 @@
             button.textContent = label;
             button.setAttribute("aria-pressed", String(isActive));
             button.title = "Double-click to rename";
-            button.addEventListener("click", () => setActiveDocument(tab.id, subtab?.id ?? null, true));
-            button.addEventListener("dblclick", () => startRename(button, tab, subtab));
+            button.addEventListener("click", () => {
+                clearTimeout(tabClickTimer);
+                tabClickTimer = setTimeout(() => {
+                    tabClickTimer = null;
+                    setActiveDocument(tab.id, subtab?.id ?? null, true);
+                }, tabDoubleClickWindow);
+            });
+            button.addEventListener("dblclick", (event) => {
+                event.preventDefault();
+                clearTimeout(tabClickTimer);
+                startRename(button, tab, subtab);
+            });
             return button;
         }
 
         function startRename(button, tab, subtab) {
+            clearTimeout(tabClickTimer);
             const input = document.createElement("input");
             input.className = button.className.replace("tab-button", "tab-rename");
             input.value = subtab ? subtab.label : tab.label;
