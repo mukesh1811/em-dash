@@ -12,6 +12,7 @@
             --muted: #686868;
             --control: #d8d8d8;
             --hover: #f2f2f2;
+            --active: #e8e8e8;
             --rule: #777;
             --flash: rgb(119 119 119 / 14%);
             --flash-edge: rgb(119 119 119 / 62%);
@@ -24,6 +25,7 @@
             --muted: #aaa;
             --control: #505050;
             --hover: #2a2a2a;
+            --active: #303030;
             --rule: #8a8a8a;
             --flash: rgb(238 238 238 / 12%);
             --flash-edge: rgb(238 238 238 / 58%);
@@ -69,6 +71,7 @@
         }
 
         .header h1,
+        .sidebar,
         .editor {
             font-family: monospace;
         }
@@ -87,6 +90,7 @@
             color: inherit;
             font: inherit;
             cursor: pointer;
+            touch-action: manipulation;
         }
 
         button:focus-visible {
@@ -94,11 +98,19 @@
             outline-offset: 3px;
         }
 
-        .theme-toggle {
+        .theme-toggle,
+        .nav-toggle,
+        .sidebar-toggle,
+        .add-tab,
+        .add-subtab,
+        .delete-tab {
             display: grid;
+            place-items: center;
+        }
+
+        .theme-toggle {
             width: 24px;
             height: 24px;
-            place-items: center;
             border: 1px solid var(--control);
             border-radius: 50%;
         }
@@ -116,15 +128,17 @@
         }
 
         .theme-toggle:hover,
-        .nav-toggle:hover {
+        .nav-toggle:hover,
+        .sidebar-toggle:hover,
+        .add-tab:hover,
+        .add-subtab:hover,
+        .delete-tab:hover {
             background: var(--hover);
         }
 
         .nav-toggle {
-            display: grid;
             width: 40px;
             height: 28px;
-            place-items: center;
             border: 0;
             border-bottom: 2px solid var(--rule);
             opacity: 0.9;
@@ -182,30 +196,355 @@
             }
         }
 
-        main {
-            width: 70%;
-            margin: auto;
-            padding: 0 20px 40px;
+        @keyframes sidebar-chevron {
+            50% {
+                opacity: 1;
+                transform: translateX(-3px);
+            }
+        }
+
+        .workspace {
+            padding-bottom: 40px;
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 88px;
+            bottom: 0;
+            z-index: 2;
+            width: 220px;
+            padding: 18px 18px 0 0;
+            background: var(--background);
+            color: var(--muted);
+            overflow-x: hidden;
+            overflow-y: auto;
+            transition: top 180ms ease, width 180ms ease, padding 180ms ease;
+        }
+
+        .sidebar-collapsed .sidebar {
+            width: 42px;
+            padding-right: 0;
+        }
+
+        .nav-collapsed .sidebar {
+            top: 32px;
+        }
+
+        .sidebar-header {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .sidebar-title {
+            position: absolute;
+            left: 28px;
+            margin: 0;
+            color: var(--text);
+            font-size: 0.8rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            transition: opacity 180ms ease, transform 180ms ease;
+        }
+
+        .add-tab,
+        .add-subtab {
+            border: 1px solid var(--control);
+            color: var(--muted);
+        }
+
+        .add-tab {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            font-size: 1.1rem;
+            line-height: 1;
+        }
+
+        .add-tab:hover,
+        .add-subtab:hover {
+            color: var(--text);
+        }
+
+        .sidebar-toggle {
+            width: 28px;
+            height: 40px;
+            flex: 0 0 auto;
+            border: 0;
+            border-right: 2px solid var(--rule);
+            opacity: 0.9;
+            transition: background 120ms ease, opacity 120ms ease;
+        }
+
+        .sidebar-toggle:hover {
+            opacity: 1;
+        }
+
+        .sidebar-toggle::before {
+            content: "\2039";
+            font-size: 1.45rem;
+            font-weight: 600;
+            line-height: 0.7;
+            animation: sidebar-chevron 0.8s ease-in-out infinite;
+        }
+
+        .sidebar-collapsed .sidebar-toggle {
+            border-right: 0;
+            border-left: 2px solid var(--rule);
+        }
+
+        .sidebar-collapsed .sidebar-toggle::before {
+            content: "\203a";
+        }
+
+        .sidebar-collapsed .sidebar-title,
+        .sidebar-collapsed .add-tab,
+        .sidebar-collapsed .tab-list {
+            position: absolute;
+            visibility: hidden;
+            opacity: 0;
+            transform: translateX(-8px);
+        }
+
+        .sidebar.flash {
+            animation: flash 420ms ease-out;
+        }
+
+        .tab-list {
+            display: grid;
+            gap: 6px;
+            transition: opacity 180ms ease, transform 180ms ease;
+        }
+
+        .tab-group {
+            display: grid;
+            gap: 4px;
+        }
+
+        .tab-row,
+        .subtab-row {
+            display: grid;
+            gap: 4px;
+        }
+
+        .tab-row {
+            grid-template-columns: 24px minmax(0, 1fr) 24px;
+        }
+
+        .subtab-row {
+            grid-template-columns: 24px minmax(0, 1fr);
+            margin-left: 18px;
+        }
+
+        .tab-button,
+        .tab-rename {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            text-align: left;
+        }
+
+        .tab-rename {
+            background: var(--background);
+            color: var(--text);
+            font: inherit;
+        }
+
+        .tab-button:hover {
+            background: var(--hover);
+            color: var(--text);
+        }
+
+        .tab-button.active {
+            border-color: var(--control);
+            background: var(--active);
+            color: var(--text);
+        }
+
+        .subtab-button {
+            font-size: 0.92rem;
+        }
+
+        .delete-tab {
+            width: 24px;
+            height: 24px;
+            align-self: center;
+            border: 1px solid transparent;
+            border-radius: 5px;
+            color: var(--muted);
+            opacity: 0;
+            transition: background 120ms ease, color 120ms ease, opacity 120ms ease;
+        }
+
+        .tab-row:hover .delete-tab,
+        .subtab-row:hover .delete-tab,
+        .delete-tab:focus-visible {
+            opacity: 1;
+        }
+
+        .delete-tab:hover {
+            color: var(--text);
+        }
+
+        .delete-tab svg {
+            width: 14px;
+            height: 14px;
+            fill: currentColor;
+        }
+
+        .add-subtab {
+            width: 24px;
+            height: 24px;
+            align-self: center;
+            border-radius: 5px;
+            font-size: 1rem;
+            line-height: 1;
         }
 
         .editor {
             min-height: 60vh;
-            padding: 18px 18px 60px;
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 18px 28px 60px;
             outline: none;
             font-size: 18px;
             line-height: 1.25;
         }
 
         @media (max-width: 640px) {
+            html {
+                scrollbar-gutter: auto;
+            }
+
+            .header {
+                gap: 6px;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+                line-height: 1;
+            }
+
+            .workspace {
+                padding: 0;
+            }
+
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                width: 100%;
+                padding: 14px 12px max(24px, env(safe-area-inset-bottom)) 0;
+                overflow-x: hidden;
+                overflow-y: auto;
+                overscroll-behavior: contain;
+            }
+
+            :root:not(.sidebar-collapsed) .header,
+            :root:not(.sidebar-collapsed) main {
+                visibility: hidden;
+            }
+
+            :root:not(.sidebar-collapsed) .sidebar {
+                top: 0;
+            }
+
+            .sidebar-collapsed .sidebar {
+                top: 88px;
+                bottom: auto;
+                width: 42px;
+                height: 72px;
+                padding: 14px 0 0;
+                overflow: hidden;
+            }
+
+            .nav-collapsed.sidebar-collapsed .sidebar {
+                top: 32px;
+            }
+
+            .sidebar-header {
+                min-height: 44px;
+            }
+
+            .sidebar-title {
+                left: 48px;
+            }
+
+            .sidebar-toggle {
+                width: 44px;
+                height: 44px;
+            }
+
+            .sidebar-collapsed .sidebar-toggle {
+                width: 42px;
+            }
+
+            .add-tab {
+                width: 36px;
+                height: 36px;
+            }
+
+            .tab-list {
+                overflow: visible;
+            }
+
+            .tab-row {
+                grid-template-columns: 44px minmax(0, 1fr) 44px;
+            }
+
+            .subtab-row {
+                grid-template-columns: 44px minmax(0, 1fr);
+                margin-left: 14px;
+            }
+
+            .tab-button,
+            .tab-rename {
+                min-height: 44px;
+                padding: 10px;
+            }
+
+            .delete-tab,
+            .add-subtab {
+                width: 44px;
+                height: 44px;
+            }
+
+            .delete-tab {
+                opacity: 1;
+            }
+
             main {
                 width: 100%;
+            }
+
+            .editor {
+                width: 100%;
+                min-height: calc(100vh - 88px);
+                min-height: calc(100dvh - 88px);
+                padding: 20px 22px calc(88px + env(safe-area-inset-bottom)) 50px;
+                font-size: 17px;
+                line-height: 1.4;
+            }
+
+            .nav-collapsed .editor {
+                min-height: calc(100vh - 32px);
+                min-height: calc(100dvh - 32px);
             }
         }
 
         @media (prefers-reduced-motion: reduce) {
             .header,
             .header *,
-            .header *::before {
+            .header *::before,
+            .sidebar,
+            .sidebar *,
+            .sidebar *::before {
                 animation: none;
                 transition: none;
             }
@@ -235,28 +574,66 @@
             title="Collapse top bar"></button>
     </header>
 
-    <main>
-        <div
-            class="editor"
-            id="editor"
-            contenteditable="true"
-            role="textbox"
-            aria-multiline="true"></div>
-    </main>
+    <div class="workspace">
+        <aside class="sidebar" id="sidebar" aria-label="Tabs">
+            <div class="sidebar-header">
+                <h2 class="sidebar-title">Tabs</h2>
+                <button class="add-tab" id="add-tab" type="button" aria-label="Add tab" title="Add tab">+</button>
+                <button
+                    class="sidebar-toggle"
+                    id="sidebar-toggle"
+                    type="button"
+                    aria-controls="tab-list"
+                    aria-expanded="true"
+                    aria-label="Collapse sidebar"
+                    title="Collapse sidebar"></button>
+            </div>
+            <nav class="tab-list" id="tab-list" aria-label="Document tabs"></nav>
+        </aside>
+
+        <main>
+            <div
+                class="editor"
+                id="editor"
+                contenteditable="true"
+                role="textbox"
+                aria-multiline="true"></div>
+        </main>
+    </div>
 
     <script>
         const root = document.documentElement;
         const header = document.getElementById("header");
         const editor = document.getElementById("editor");
+        const sidebar = document.getElementById("sidebar");
+        const tabList = document.getElementById("tab-list");
+        const addTabButton = document.getElementById("add-tab");
         const navToggle = document.getElementById("nav-toggle");
+        const sidebarToggle = document.getElementById("sidebar-toggle");
         const themeToggle = document.getElementById("theme-toggle");
         const caretAnchor = "\u200B";
         const graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" });
         const inlinePattern = /(?<!\*)(\*{1,3})([^*]+)\1(?!\*)|(?<!_)_([^_]+)_(?!_)/g;
+        const storagePrefix = "em-dash-";
+        const tabDoubleClickWindow = 400;
+        const mobileLayout = matchMedia("(max-width: 640px)");
+        const defaultTabs = [
+            { id: "write", label: "Write", subtabs: [{ id: "draft", label: "Draft" }] },
+            { id: "notes", label: "Notes", subtabs: [{ id: "ideas", label: "Ideas" }] },
+            { id: "archive", label: "Archive", subtabs: [{ id: "saved", label: "Saved" }] }
+        ];
+        const tabs = loadTabs();
+        let tabClickTimer = null;
+        const storedActiveTab = load("active-tab");
+        let activeTab = tabs.some((tab) => tab.id === storedActiveTab) ? storedActiveTab : tabs[0].id;
+        let activeSubtab = load("active-subtab");
+        if (!tabs.find((tab) => tab.id === activeTab)?.subtabs.some((subtab) => subtab.id === activeSubtab)) {
+            activeSubtab = null;
+        }
 
         function load(name) {
             try {
-                return localStorage.getItem(`em-dash-${name}`);
+                return localStorage.getItem(storagePrefix + name);
             } catch {
                 return null;
             }
@@ -264,54 +641,356 @@
 
         function save(name, value) {
             try {
-                localStorage.setItem(`em-dash-${name}`, value);
+                localStorage.setItem(storagePrefix + name, value);
             } catch {}
         }
 
-        function saveDraft() {
-            save("draft", editor.innerHTML.replaceAll(caretAnchor, ""));
+        function labelButton(button, label) {
+            button.setAttribute("aria-label", label);
+            button.title = label;
         }
 
-        function setDarkMode(dark, persist = false) {
+        function restoreEditorFocus() {
+            if (!mobileLayout.matches) {
+                editor.focus({ preventScroll: true });
+            }
+        }
+
+        function cloneDefaultTabs() {
+            return defaultTabs.map((tab) => ({
+                ...tab,
+                subtabs: tab.subtabs.map((subtab) => ({ ...subtab }))
+            }));
+        }
+
+        function createId(prefix) {
+            const id = globalThis.crypto?.randomUUID?.()
+                || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+            return `${prefix}-${id}`;
+        }
+
+        function normalizeTabs(value) {
+            if (!Array.isArray(value)) {
+                return null;
+            }
+
+            const normalized = value.flatMap((tab) => {
+                if (!tab || typeof tab.id !== "string" || typeof tab.label !== "string") {
+                    return [];
+                }
+
+                const subtabs = Array.isArray(tab.subtabs)
+                    ? tab.subtabs
+                    : tab.subtab ? [tab.subtab] : [];
+
+                return [{
+                    id: tab.id,
+                    label: tab.label.trim() || "Untitled tab",
+                    subtabs: subtabs
+                        .filter((subtab) => subtab && typeof subtab.id === "string" && typeof subtab.label === "string")
+                        .map((subtab) => ({
+                            id: subtab.id,
+                            label: subtab.label.trim() || "Untitled subtab"
+                        }))
+                }];
+            });
+
+            return normalized.length ? normalized : null;
+        }
+
+        function loadTabs() {
+            const stored = load("tabs");
+            if (!stored) {
+                return cloneDefaultTabs();
+            }
+
+            try {
+                const parsed = JSON.parse(stored);
+                const loadedTabs = normalizeTabs(parsed);
+                if (loadedTabs) {
+                    return loadedTabs;
+                }
+
+                return defaultTabs.map((tab) => {
+                    const savedTab = parsed?.[tab.id];
+                    return {
+                        ...tab,
+                        label: savedTab?.label || tab.label,
+                        subtabs: savedTab?.subtab
+                            ? [{ ...tab.subtabs[0], label: savedTab.subtab }]
+                            : tab.subtabs.map((subtab) => ({ ...subtab }))
+                    };
+                });
+            } catch {
+                return cloneDefaultTabs();
+            }
+        }
+
+        function saveTabs() {
+            save("tabs", JSON.stringify(tabs));
+        }
+
+        function currentDocumentKey() {
+            return ["draft", activeTab, activeSubtab].filter(Boolean).join("-");
+        }
+
+        function saveDraft() {
+            save(currentDocumentKey(), editor.innerHTML.replaceAll(caretAnchor, ""));
+        }
+
+        function loadDraft() {
+            const legacyDraft = activeTab === tabs[0].id && !activeSubtab ? load("draft") : null;
+            editor.innerHTML = load(currentDocumentKey()) ?? legacyDraft ?? "";
+            const activeTabData = tabs.find((tab) => tab.id === activeTab);
+            const activeLabel = activeTabData?.label;
+            const subtabLabel = activeTabData?.subtabs.find((subtab) => subtab.id === activeSubtab)?.label;
+            editor.setAttribute("aria-label", `${activeLabel}${subtabLabel ? `, ${subtabLabel}` : ""} document`);
+        }
+
+        function setActiveDocument(tabId, subtabId = null) {
+            saveDraft();
+            activeTab = tabId;
+            activeSubtab = subtabId;
+            save("active-tab", activeTab);
+            save("active-subtab", activeSubtab ?? "");
+            renderTabs();
+            loadDraft();
+            restoreEditorFocus();
+        }
+
+        function renderTabs() {
+            tabList.replaceChildren(...tabs.map((tab) => {
+                const group = document.createElement("div");
+                group.className = "tab-group";
+                group.append(
+                    createTabRow(tab),
+                    ...tab.subtabs.map((subtab) => createTabRow(tab, subtab))
+                );
+                return group;
+            }));
+        }
+
+        function createTabRow(tab, subtab = null) {
+            const row = document.createElement("div");
+            row.className = subtab ? "subtab-row" : "tab-row";
+            row.append(createDeleteButton(tab, subtab), createTabButton(tab, subtab));
+            if (!subtab) {
+                row.append(createAddSubtabButton(tab));
+            }
+            return row;
+        }
+
+        function createTabButton(tab, subtab = null) {
+            const isSubtab = Boolean(subtab);
+            const isActive = activeTab === tab.id && activeSubtab === (subtab?.id ?? null);
+            const button = document.createElement("button");
+            button.className = `tab-button${isSubtab ? " subtab-button" : ""}${isActive ? " active" : ""}`;
+            button.type = "button";
+            button.textContent = subtab?.label ?? tab.label;
+            button.dataset.tabId = tab.id;
+            if (subtab) {
+                button.dataset.subtabId = subtab.id;
+            }
+            button.setAttribute("aria-pressed", String(isActive));
+            button.title = "Double-click to rename";
+            button.addEventListener("click", () => {
+                cancelTabClick();
+                tabClickTimer = setTimeout(() => {
+                    tabClickTimer = null;
+                    setActiveDocument(tab.id, subtab?.id ?? null);
+                    if (mobileLayout.matches) {
+                        setSidebarCollapsed(true);
+                    }
+                }, tabDoubleClickWindow);
+            });
+            button.addEventListener("dblclick", (event) => {
+                event.preventDefault();
+                cancelTabClick();
+                startRename(button, tab, subtab);
+            });
+            return button;
+        }
+
+        function cancelTabClick() {
+            clearTimeout(tabClickTimer);
+            tabClickTimer = null;
+        }
+
+        function createAddSubtabButton(tab) {
+            const button = document.createElement("button");
+            button.className = "add-subtab";
+            button.type = "button";
+            button.textContent = "+";
+            labelButton(button, `Add subtab to ${tab.label}`);
+            button.addEventListener("click", () => addSubtab(tab));
+            return button;
+        }
+
+        function createDeleteButton(tab, subtab) {
+            const itemLabel = subtab ? subtab.label : tab.label;
+            const button = document.createElement("button");
+            button.className = "delete-tab";
+            button.type = "button";
+            button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l1 2h4v2h-1v13H5V7H4V5h4l1-2zm-2 4v11h10V7H7zm2 2h2v7H9V9zm4 0h2v7h-2V9z"></path></svg>';
+            const canDelete = Boolean(subtab) || tabs.length > 1;
+            labelButton(button, canDelete ? `Delete ${itemLabel}` : "At least one tab is required");
+            button.disabled = !canDelete;
+            button.addEventListener("click", () => deleteTabItem(tab, subtab));
+            return button;
+        }
+
+        function deleteTabItem(tab, subtab) {
+            const itemLabel = subtab ? subtab.label : tab.label;
+            if (!subtab && tabs.length === 1) {
+                return;
+            }
+            const subtabWarning = !subtab && tab.subtabs.length
+                ? ` ${tab.subtabs.length} subtab${tab.subtabs.length === 1 ? "" : "s"} will also be deleted.`
+                : "";
+            if (!window.confirm(`Delete ${itemLabel}?${subtabWarning}`)) {
+                return;
+            }
+
+            if (subtab) {
+                tab.subtabs = tab.subtabs.filter((candidate) => candidate.id !== subtab.id);
+                saveTabs();
+                if (activeTab === tab.id && activeSubtab === subtab.id) {
+                    setActiveDocument(tab.id, tab.subtabs[0]?.id ?? null);
+                } else {
+                    renderTabs();
+                }
+                return;
+            }
+
+            const deletedIndex = tabs.findIndex((candidate) => candidate.id === tab.id);
+            tabs.splice(deletedIndex, 1);
+            saveTabs();
+            if (activeTab === tab.id) {
+                const nextTab = tabs[deletedIndex] || tabs[deletedIndex - 1] || tabs[0];
+                setActiveDocument(nextTab.id, nextTab.subtabs[0]?.id ?? null);
+            } else {
+                renderTabs();
+            }
+        }
+
+        function focusRename(tab, subtab = null) {
+            const button = [...tabList.querySelectorAll(".tab-button")].find((candidate) =>
+                candidate.dataset.tabId === tab.id
+                && (candidate.dataset.subtabId || null) === (subtab?.id ?? null)
+            );
+            if (button) {
+                startRename(button, tab, subtab);
+            }
+        }
+
+        function addTab() {
+            const tab = { id: createId("tab"), label: "New tab", subtabs: [] };
+            tabs.push(tab);
+            saveTabs();
+            setActiveDocument(tab.id);
+            focusRename(tab);
+        }
+
+        function addSubtab(tab) {
+            const subtab = { id: createId("subtab"), label: "New subtab" };
+            tab.subtabs.push(subtab);
+            saveTabs();
+            setActiveDocument(tab.id, subtab.id);
+            focusRename(tab, subtab);
+        }
+
+        function startRename(button, tab, subtab) {
+            cancelTabClick();
+            const input = document.createElement("input");
+            input.className = button.className.replace("tab-button", "tab-rename");
+            input.value = subtab ? subtab.label : tab.label;
+            input.setAttribute("aria-label", `Rename ${subtab ? "subtab" : "tab"}`);
+            button.replaceWith(input);
+            input.focus();
+            input.select();
+
+            let renamed = false;
+            const finish = (commit) => {
+                if (renamed) {
+                    return;
+                }
+                renamed = true;
+                if (commit) {
+                    const nextLabel = input.value.trim();
+                    if (nextLabel) {
+                        if (subtab) {
+                            subtab.label = nextLabel;
+                        } else {
+                            tab.label = nextLabel;
+                        }
+                        saveTabs();
+                    }
+                }
+                renderTabs();
+                loadDraft();
+            };
+
+            input.addEventListener("blur", () => finish(true), { once: true });
+            input.addEventListener("keydown", (event) => {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    finish(true);
+                } else if (event.key === "Escape") {
+                    event.preventDefault();
+                    finish(false);
+                }
+            });
+        }
+
+        function setDarkMode(dark) {
             const action = dark ? "Switch to light mode" : "Switch to dark mode";
             root.classList.toggle("dark-mode", dark);
             themeToggle.setAttribute("aria-pressed", String(dark));
-            themeToggle.setAttribute("aria-label", action);
-            themeToggle.title = action;
+            labelButton(themeToggle, action);
+        }
 
-            if (persist) {
-                save("dark-mode", dark);
+        function flash(element) {
+            element.classList.remove("flash");
+            requestAnimationFrame(() => element.classList.add("flash"));
+        }
+
+        function setSidebarCollapsed(collapsed, animate = false) {
+            const action = collapsed ? "Expand sidebar" : "Collapse sidebar";
+            root.classList.toggle("sidebar-collapsed", collapsed);
+            sidebarToggle.setAttribute("aria-expanded", String(!collapsed));
+            labelButton(sidebarToggle, action);
+            if (animate) {
+                flash(sidebar);
             }
         }
 
-        function setNavCollapsed(collapsed, persist = false) {
+        function setNavCollapsed(collapsed, animate = false) {
             const action = collapsed ? "Expand top bar" : "Collapse top bar";
             root.classList.toggle("nav-collapsed", collapsed);
             navToggle.setAttribute("aria-expanded", String(!collapsed));
-            navToggle.setAttribute("aria-label", action);
-            navToggle.title = action;
-
-            if (persist) {
-                header.classList.remove("flash");
-                requestAnimationFrame(() => header.classList.add("flash"));
-                save("nav-collapsed", collapsed);
+            labelButton(navToggle, action);
+            if (animate) {
+                flash(header);
             }
         }
 
-        header.addEventListener("mousedown", (event) => {
-            if (event.target.closest("button")) {
-                event.preventDefault();
-            }
-        });
-
         themeToggle.addEventListener("click", () => {
-            setDarkMode(!root.classList.contains("dark-mode"), true);
-            editor.focus({ preventScroll: true });
+            const dark = !root.classList.contains("dark-mode");
+            setDarkMode(dark);
+            save("dark-mode", dark);
+            restoreEditorFocus();
         });
 
         navToggle.addEventListener("click", () => {
             setNavCollapsed(!root.classList.contains("nav-collapsed"), true);
-            editor.focus({ preventScroll: true });
+            restoreEditorFocus();
+        });
+
+        addTabButton.addEventListener("click", addTab);
+
+        sidebarToggle.addEventListener("click", () => {
+            setSidebarCollapsed(!root.classList.contains("sidebar-collapsed"), true);
+            restoreEditorFocus();
         });
 
         editor.addEventListener("beforeinput", (event) => {
@@ -512,13 +1191,11 @@
         }
 
         setDarkMode(load("dark-mode") === "true");
-        setNavCollapsed(load("nav-collapsed") === "true");
-
-        const draft = load("draft");
-        if (draft !== null) {
-            editor.innerHTML = draft;
-        }
-        editor.focus();
+        setNavCollapsed(true);
+        setSidebarCollapsed(true);
+        renderTabs();
+        loadDraft();
+        restoreEditorFocus();
     </script>
 </body>
 </html>
