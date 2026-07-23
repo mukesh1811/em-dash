@@ -89,6 +89,7 @@
             color: inherit;
             font: inherit;
             cursor: pointer;
+            touch-action: manipulation;
         }
 
         button:focus-visible {
@@ -301,6 +302,7 @@
         }
 
         .sidebar-collapsed .sidebar-title,
+        .sidebar-collapsed .add-tab,
         .sidebar-collapsed .tab-list {
             position: absolute;
             visibility: hidden;
@@ -415,30 +417,125 @@
         }
 
         @media (max-width: 640px) {
+            html {
+                scrollbar-gutter: auto;
+            }
+
+            .header {
+                gap: 6px;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+                line-height: 1;
+            }
+
             .workspace {
-                padding: 0 14px 32px;
+                padding: 0;
             }
 
             .sidebar {
-                position: static;
-                bottom: auto;
-                width: auto;
-                padding: 12px 0;
-                border-bottom: 1px solid var(--control);
-                overflow: visible;
+                position: fixed;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                width: 100%;
+                padding: 14px 12px max(24px, env(safe-area-inset-bottom)) 0;
+                overflow-x: hidden;
+                overflow-y: auto;
+                overscroll-behavior: contain;
+            }
+
+            :root:not(.sidebar-collapsed) .header,
+            :root:not(.sidebar-collapsed) main {
+                visibility: hidden;
+            }
+
+            :root:not(.sidebar-collapsed) .sidebar {
+                top: 0;
             }
 
             .sidebar-collapsed .sidebar {
-                width: auto;
+                top: 88px;
+                bottom: auto;
+                width: 42px;
+                height: 72px;
+                padding: 14px 0 0;
+                overflow: hidden;
+            }
+
+            .nav-collapsed.sidebar-collapsed .sidebar {
+                top: 32px;
+            }
+
+            .sidebar-header {
+                min-height: 44px;
+            }
+
+            .sidebar-title {
+                left: 48px;
+            }
+
+            .sidebar-toggle {
+                width: 44px;
+                height: 44px;
+            }
+
+            .sidebar-collapsed .sidebar-toggle {
+                width: 42px;
+            }
+
+            .add-tab {
+                width: 36px;
+                height: 36px;
             }
 
             .tab-list {
-                grid-auto-flow: column;
-                grid-auto-columns: minmax(130px, 1fr);
-                overflow-x: auto;
-                padding-bottom: 6px;
+                overflow: visible;
             }
 
+            .tab-row {
+                grid-template-columns: 44px minmax(0, 1fr) 44px;
+            }
+
+            .subtab-row {
+                grid-template-columns: 44px minmax(0, 1fr);
+                margin-left: 14px;
+            }
+
+            .tab-button,
+            .tab-rename {
+                min-height: 44px;
+                padding: 10px;
+            }
+
+            .delete-tab,
+            .add-subtab {
+                width: 44px;
+                height: 44px;
+            }
+
+            .delete-tab {
+                opacity: 1;
+            }
+
+            main {
+                width: 100%;
+            }
+
+            .editor {
+                width: 100%;
+                min-height: calc(100vh - 88px);
+                min-height: calc(100dvh - 88px);
+                padding: 20px 22px calc(88px + env(safe-area-inset-bottom)) 50px;
+                font-size: 17px;
+                line-height: 1.4;
+            }
+
+            .nav-collapsed .editor {
+                min-height: calc(100vh - 32px);
+                min-height: calc(100dvh - 32px);
+            }
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -519,6 +616,7 @@
         const inlinePattern = /(?<!\*)(\*{1,3})([^*]+)\1(?!\*)|(?<!_)_([^_]+)_(?!_)/g;
         const storagePrefix = "em-dash-";
         const tabDoubleClickWindow = 400;
+        const mobileLayout = matchMedia("(max-width: 640px)");
         const defaultTabs = [
             { id: "write", label: "Write", subtabs: [{ id: "draft", label: "Draft" }] },
             { id: "notes", label: "Notes", subtabs: [{ id: "ideas", label: "Ideas" }] },
@@ -550,6 +648,12 @@
         function labelButton(button, label) {
             button.setAttribute("aria-label", label);
             button.title = label;
+        }
+
+        function restoreEditorFocus() {
+            if (!mobileLayout.matches) {
+                editor.focus({ preventScroll: true });
+            }
         }
 
         function cloneDefaultTabs() {
@@ -651,7 +755,7 @@
             save("active-subtab", activeSubtab ?? "");
             renderTabs();
             loadDraft();
-            editor.focus({ preventScroll: true });
+            restoreEditorFocus();
         }
 
         function renderTabs() {
@@ -694,6 +798,9 @@
                 tabClickTimer = setTimeout(() => {
                     tabClickTimer = null;
                     setActiveDocument(tab.id, subtab?.id ?? null);
+                    if (mobileLayout.matches) {
+                        setSidebarCollapsed(true);
+                    }
                 }, tabDoubleClickWindow);
             });
             button.addEventListener("dblclick", (event) => {
@@ -871,19 +978,19 @@
             const dark = !root.classList.contains("dark-mode");
             setDarkMode(dark);
             save("dark-mode", dark);
-            editor.focus({ preventScroll: true });
+            restoreEditorFocus();
         });
 
         navToggle.addEventListener("click", () => {
             setNavCollapsed(!root.classList.contains("nav-collapsed"), true);
-            editor.focus({ preventScroll: true });
+            restoreEditorFocus();
         });
 
         addTabButton.addEventListener("click", addTab);
 
         sidebarToggle.addEventListener("click", () => {
             setSidebarCollapsed(!root.classList.contains("sidebar-collapsed"), true);
-            editor.focus({ preventScroll: true });
+            restoreEditorFocus();
         });
 
         editor.addEventListener("beforeinput", (event) => {
@@ -1088,7 +1195,7 @@
         setSidebarCollapsed(true);
         renderTabs();
         loadDraft();
-        editor.focus();
+        restoreEditorFocus();
     </script>
 </body>
 </html>
