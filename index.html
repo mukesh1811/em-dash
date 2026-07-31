@@ -417,17 +417,32 @@
         }
 
         .editor {
+            --editor-inline-start: 28px;
+            --editor-block-start: 18px;
             min-height: 60vh;
             max-width: 960px;
             margin: 0 auto;
             padding: 18px 28px 60px;
             outline: none;
+            position: relative;
             font-size: 18px;
             line-height: 1.25;
             white-space: pre-wrap;
             overflow-wrap: break-word;
             word-break: normal;
             hyphens: none;
+        }
+
+        .editor.is-empty::before {
+            position: absolute;
+            inset-block-start: var(--editor-block-start);
+            inset-inline-start: calc(var(--editor-inline-start) + 1ch);
+            content: "just write  ·  tabs to your left  ·  theme up top";
+            color: var(--muted);
+            opacity: 0.72;
+            pointer-events: none;
+            user-select: none;
+            white-space: nowrap;
         }
 
         .editor h1,
@@ -577,12 +592,18 @@
             }
 
             .editor {
+                --editor-inline-start: 16px;
+                --editor-block-start: 20px;
                 width: 100%;
                 min-height: calc(100vh - 88px);
                 min-height: calc(100dvh - 88px);
                 padding: 20px 16px calc(88px + env(safe-area-inset-bottom)) 50px;
                 font-size: 16px;
                 line-height: 1.5;
+            }
+
+            .editor.is-empty::before {
+                content: "just write";
             }
 
             .nav-collapsed .editor {
@@ -797,6 +818,12 @@
             const activeLabel = activeTabData?.label;
             const subtabLabel = activeTabData?.subtabs.find((subtab) => subtab.id === activeSubtab)?.label;
             editor.setAttribute("aria-label", `${activeLabel}${subtabLabel ? `, ${subtabLabel}` : ""} document`);
+            updateEditorEmptyState();
+        }
+
+        function updateEditorEmptyState() {
+            const content = editor.textContent.replaceAll(caretAnchor, "");
+            editor.classList.toggle("is-empty", content.trim().length === 0);
         }
 
         function setActiveDocument(tabId, subtabId = null) {
@@ -1047,6 +1074,7 @@
 
         editor.addEventListener("input", (event) => {
             if (event.data === " " && formatBlock()) {
+                updateEditorEmptyState();
                 saveDraft();
                 return;
             }
@@ -1054,6 +1082,7 @@
             if (event.data === " " && hasInlineSyntax()) {
                 formatInline();
             }
+            updateEditorEmptyState();
             saveDraft();
         });
 
@@ -1061,6 +1090,7 @@
             if (hasInlineSyntax()) {
                 formatInline();
             }
+            updateEditorEmptyState();
             saveDraft();
         });
 
